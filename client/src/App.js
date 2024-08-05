@@ -43,7 +43,7 @@ const App = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.get("https://7hqtnt-5000.csb.app/users");
+        const response = await axios.get("https://8v8x3g-5000.csb.app/users");
         const today = new Date()
           .toLocaleDateString("en-us", { weekday: "long" })
           .toLowerCase();
@@ -62,7 +62,7 @@ const App = () => {
   useEffect(() => {
     const fetchItems = async () => {
       try {
-        const response = await axios.get("https://7hqtnt-5000.csb.app/item");
+        const response = await axios.get("https://8v8x3g-5000.csb.app/item");
         const today = new Date()
           .toLocaleDateString("en-us", { weekday: "long" })
           .toLowerCase();
@@ -76,7 +76,7 @@ const App = () => {
             return;
           }
           const responseSortedItems = await axios.post(
-            "https://7hqtnt-5000.csb.app/items-sorted-by-user",
+            "https://8v8x3g-5000.csb.app/items-sorted-by-user",
             {
               userName: selectedUser,
             }
@@ -145,7 +145,7 @@ const App = () => {
   const handleConfirmReset = async () => {
     try {
       // Call the reset endpoint
-      await axios.post("https://7hqtnt-5000.csb.app/reset");
+      await axios.post("https://8v8x3g-5000.csb.app/reset");
       setForms(
         forms.map((form) => ({
           ...form,
@@ -175,7 +175,7 @@ const App = () => {
       for (const user of selectedUsers) {
         const form = forms.find((f) => f.selectedPerson.value === user);
         for (const item of form.selectedItems) {
-          await axios.post("https://7hqtnt-5000.csb.app/update-user-orders", {
+          await axios.post("https://8v8x3g-5000.csb.app/update-user-orders", {
             name: user,
             itemName: item.label,
           });
@@ -185,14 +185,14 @@ const App = () => {
       // Update item orders
       const allSelectedItems = forms.flatMap((form) => form.selectedItems);
       for (const item of allSelectedItems) {
-        await axios.post("https://7hqtnt-5000.csb.app/update-item-orders", {
+        await axios.post("https://8v8x3g-5000.csb.app/update-item-orders", {
           itemName: item.label,
         });
       }
 
       // Refresh data after confirming orders
       const responseUsers = await axios.get(
-        "https://7hqtnt-5000.csb.app/users"
+        "https://8v8x3g-5000.csb.app/users"
       );
       const sortedUsers = responseUsers.data.sort((a, b) => {
         const today = new Date()
@@ -202,7 +202,7 @@ const App = () => {
       });
       setUsers(sortedUsers);
 
-      const responseItems = await axios.get("https://7hqtnt-5000.csb.app/item");
+      const responseItems = await axios.get("https://8v8x3g-5000.csb.app/item");
       const today = new Date()
         .toLocaleDateString("en-us", { weekday: "long" })
         .toLowerCase();
@@ -232,12 +232,12 @@ const App = () => {
 
   const handleAddUser = async () => {
     try {
-      await axios.post("https://7hqtnt-5000.csb.app/users", {
+      await axios.post("https://8v8x3g-5000.csb.app/users", {
         name: newUserName,
       });
       setNewUserName("");
       handleCloseUserDialog();
-      const response = await axios.get("https://7hqtnt-5000.csb.app/users");
+      const response = await axios.get("https://8v8x3g-5000.csb.app/users");
       const sortedUsers = response.data.sort((a, b) => {
         const today = new Date()
           .toLocaleDateString("en-us", { weekday: "long" })
@@ -252,14 +252,14 @@ const App = () => {
 
   const handleAddItem = async () => {
     try {
-      await axios.post("https://7hqtnt-5000.csb.app/item", {
+      await axios.post("https://8v8x3g-5000.csb.app/item", {
         itemName: newItemName,
         cost: newItemCost,
       });
       setNewItemName("");
       setNewItemCost("");
       handleCloseItemDialog();
-      const response = await axios.get("https://7hqtnt-5000.csb.app/item");
+      const response = await axios.get("https://8v8x3g-5000.csb.app/item");
       const today = new Date()
         .toLocaleDateString("en-us", { weekday: "long" })
         .toLowerCase();
