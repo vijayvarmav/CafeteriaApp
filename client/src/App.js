@@ -39,6 +39,8 @@ const App = () => {
   const [formToDeleteIndex, setFormToDeleteIndex] = useState(null);
   const [openResetConfirmDialog, setOpenResetConfirmDialog] = useState(false);
 
+  const [mealType, setMealType] = useState("Breakfast");
+
   // Fetch and sort users
   useEffect(() => {
     const fetchUsers = async () => {
@@ -62,24 +64,29 @@ const App = () => {
   useEffect(() => {
     const fetchItems = async () => {
       try {
-        const response = await axios.get("https://8v8x3g-5000.csb.app/item");
+        // Fetch items based on mealType
+        const response = await axios.get(
+          `https://8v8x3g-5000.csb.app/items/${mealType}`
+        );
         const today = new Date()
           .toLocaleDateString("en-us", { weekday: "long" })
           .toLowerCase();
+
+        // Sort items based on daily orders
         const defaultItems = response.data.sort(
           (a, b) => b.dailyOrders[today] - a.dailyOrders[today]
         );
+
         if (selectedUser) {
           const user = users.find((user) => user.name === selectedUser);
           if (user && user.totalOrders[today] === 0) {
             setItems(defaultItems);
             return;
           }
+          // Fetch user-specific sorted items
           const responseSortedItems = await axios.post(
             "https://8v8x3g-5000.csb.app/items-sorted-by-user",
-            {
-              userName: selectedUser,
-            }
+            { userName: selectedUser }
           );
           setItems(responseSortedItems.data);
         } else {
@@ -89,8 +96,9 @@ const App = () => {
         console.log(err);
       }
     };
+
     fetchItems();
-  }, [selectedUser, users]);
+  }, [selectedUser, users, mealType]);
 
   const userOptions = users
     .filter(
@@ -165,6 +173,18 @@ const App = () => {
   };
 
   const handleConfirmOrder = async () => {
+    // Check for empty fields
+    for (const form of forms) {
+      if (!form.selectedPerson) {
+        setStatusMessage("Please select a person for each form.");
+        return;
+      }
+      if (form.selectedItems.length === 0) {
+        setStatusMessage("Please select at least one item for each form.");
+        return;
+      }
+    }
+
     try {
       setStatusMessage("Processing...");
 
@@ -255,11 +275,14 @@ const App = () => {
       await axios.post("https://8v8x3g-5000.csb.app/item", {
         itemName: newItemName,
         cost: newItemCost,
+        mealType: mealType.toLowerCase(), // Pass meal type as part of the request
       });
       setNewItemName("");
       setNewItemCost("");
       handleCloseItemDialog();
-      const response = await axios.get("https://8v8x3g-5000.csb.app/item");
+      const response = await axios.get(
+        `https://8v8x3g-5000.csb.app/items/${mealType.toLowerCase()}`
+      );
       const today = new Date()
         .toLocaleDateString("en-us", { weekday: "long" })
         .toLowerCase();
@@ -310,12 +333,22 @@ const App = () => {
         }}
       >
         <h1>Cafeteria Application</h1>
-        <IconButton onClick={handleAddForm}>
-          <AddCircleOutlineRoundedIcon
-            sx={{ height: "30px", width: "30px", padding: "0px" }}
-          />
-        </IconButton>
-        <Button onClick={handleReset}>Reset</Button>
+      </div>
+      <div style={{ position: "absolute", top: 10, left: 10 }}>
+        <Button
+          variant="contained"
+          onClick={() => setMealType("breakfast")}
+          disabled={mealType === "breakfast"}
+        >
+          Breakfast
+        </Button>
+        <Button
+          variant="contained"
+          onClick={() => setMealType("lunch")}
+          disabled={mealType === "lunch"}
+        >
+          Lunch
+        </Button>
       </div>
 
       {forms.map((form, index) => (
@@ -372,10 +405,19 @@ const App = () => {
             }}
           />
 
-          <IconButton onClick={() => handleDeleteForm(index)}>
-            <DeleteIcon
+          <IconButton onClick={handleAddForm}>
+            <AddCircleOutlineRoundedIcon
               sx={{ height: "30px", width: "30px", padding: "0px" }}
             />
+          </IconButton>
+
+          <IconButton
+            color="primary"
+            aria-label="delete"
+            onClick={() => handleDeleteForm(index)}
+            disabled={forms.length === 1} // Disable if only one form
+          >
+            <DeleteIcon />
           </IconButton>
         </form>
       ))}
@@ -386,7 +428,8 @@ const App = () => {
             <TableRow>
               <TableCell>Items</TableCell>
               <TableCell>Quantity</TableCell>
-              <TableCell>Price</TableCell>
+              <TableCell>Unit Price</TableCell>
+              <TableCell>Total Price</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -394,6 +437,7 @@ const App = () => {
               <TableRow key={index}>
                 <TableCell>{item.label}</TableCell>
                 <TableCell>{item.quantity}</TableCell>
+                <TableCell>{item.cost}</TableCell>
                 <TableCell>{`${(item.cost * item.quantity).toFixed(
                   2
                 )}`}</TableCell>
@@ -405,12 +449,14 @@ const App = () => {
               </TableCell>
               <TableCell>{totalQuantity}</TableCell>
               <TableCell>
-                <strong>Total Price</strong>
+                <strong>Final Price</strong>
               </TableCell>
               <TableCell>{`${totalPrice.toFixed(2)}`}</TableCell>
             </TableRow>
             <TableRow>
               <TableCell colSpan={4} style={{ textAlign: "center" }}>
+                <Button onClick={handleReset}>Reset</Button>
+
                 <Button
                   variant="contained"
                   color="primary"

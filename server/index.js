@@ -18,8 +18,8 @@ mongoose
   .then(() => console.log("Connected to DB"))
   .catch((err) => console.log(err));
 
-// Item Schema
-const itemsSchema = new mongoose.Schema({
+// Item Sub-schema for Breakfast
+const breakfastSchema = new mongoose.Schema({
   itemName: String,
   cost: String,
   dailyOrders: {
@@ -29,6 +29,26 @@ const itemsSchema = new mongoose.Schema({
     thursday: { type: Number, default: 0 },
     friday: { type: Number, default: 0 },
   },
+});
+
+// Item Sub-schema for Lunch
+const lunchSchema = new mongoose.Schema({
+  itemName: String,
+  cost: String,
+  dailyOrders: {
+    monday: { type: Number, default: 0 },
+    tuesday: { type: Number, default: 0 },
+    wednesday: { type: Number, default: 0 },
+    thursday: { type: Number, default: 0 },
+    friday: { type: Number, default: 0 },
+  },
+});
+
+// Main Item Schema
+const itemsSchema = new mongoose.Schema({
+  breakfast: [breakfastSchema],
+  lunch: [lunchSchema],
+  mealType: { type: String, enum: ["breakfast", "lunch"], required: true },
 });
 
 const Item = mongoose.model("Item", itemsSchema, "items");
@@ -68,9 +88,15 @@ app.get("/", (req, res) => {
 // Create a new item
 app.post("/item", async (req, res) => {
   try {
-    const data = new Item(req.body);
-    await data.save();
-    res.status(201).send(data);
+    const { itemName, cost, mealType } = req.body;
+    const newItem = new Item({
+      mealType,
+      ...(mealType === "breakfast"
+        ? { breakfast: [{ itemName, cost }] }
+        : { lunch: [{ itemName, cost }] }),
+    });
+    await newItem.save();
+    res.status(201).send(newItem);
   } catch (err) {
     console.log(err);
     res.status(500).send({ message: "Error creating item", error: err });
@@ -78,22 +104,39 @@ app.post("/item", async (req, res) => {
 });
 
 // Get all items
-app.get("/item", async (req, res) => {
-  try {
-    const dayOfWeek = new Date().getDay(); // Get the current day of the week (0-6)
-    const days = [
-      "sunday",
-      "monday",
-      "tuesday",
-      "wednesday",
-      "thursday",
-      "friday",
-      "saturday",
-    ];
-    const orderField = `dailyOrders.${days[dayOfWeek]}`;
+app.get("/items/:mealType", async (req, res) => {
+  const { mealType } = req.params;
+  const dayOfWeek = new Date().getDay();
+  const days = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ];
+  const orderField = `dailyOrders.${days[dayOfWeek]}`;
 
-    const items = await Item.find().sort({ [orderField]: -1 });
-    res.json(items);
+  try {
+    if (!["breakfast", "lunch"].includes(mealType)) {
+      return res.status(400).send({ message: "Invalid mealType" });
+    }
+
+    const items = await Item.find();
+    let sortedItems;
+
+    if (mealType === "breakfast") {
+      sortedItems = items
+        .flatMap((item) => item.breakfast)
+        .sort((a, b) => b[orderField] - a[orderField]);
+    } else {
+      sortedItems = items
+        .flatMap((item) => item.lunch)
+        .sort((a, b) => b[orderField] - a[orderField]);
+    }
+
+    res.json(sortedItems);
   } catch (err) {
     console.log(err);
     res.status(500).send({ message: "Error fetching items", error: err });
@@ -101,34 +144,32 @@ app.get("/item", async (req, res) => {
 });
 
 // Update item's daily order count
-app.post("/update-item-orders", async (req, res) => {
+app.post("/item", async (req, res) => {
   try {
-    const { itemName } = req.body;
-    const dayOfWeek = new Date().getDay(); // Get the current day of the week (0-6)
-    const days = [
-      "sunday",
-      "monday",
-      "tuesday",
-      "wednesday",
-      "thursday",
-      "friday",
-      "saturday",
-    ];
-    const updateField = `dailyOrders.${days[dayOfWeek]}`;
+    const { itemName, cost, mealType } = req.body;
+
+    // Check if the mealType is valid
+    if (!["breakfast", "lunch"].includes(mealType)) {
+      return res.status(400).send({ message: "Invalid mealType" });
+    }
+
+    const update = {};
+    if (mealType === "breakfast") {
+      update["breakfast"] = { itemName, cost };
+    } else {
+      update["lunch"] = { itemName, cost };
+    }
 
     const item = await Item.findOneAndUpdate(
-      { itemName },
-      { $inc: { [updateField]: 1 } },
-      { new: true }
+      { [`${mealType}.itemName`]: itemName },
+      { $set: update },
+      { new: true, upsert: true } // upsert will create the document if it doesn't exist
     );
-    if (item) {
-      res.status(200).send({ message: "Item orders updated", item });
-    } else {
-      res.status(404).send({ message: "Item not found" });
-    }
+
+    res.status(201).send(item);
   } catch (err) {
     console.log(err);
-    res.status(500).send({ message: "Error updating item orders", error: err });
+    res.status(500).send({ message: "Error creating item", error: err });
   }
 });
 
