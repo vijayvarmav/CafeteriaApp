@@ -13,8 +13,7 @@ app.use(bodyParser.json());
 // MongoDB connection
 mongoose
   .connect(
-    "mongodb+srv://othervarma:vzu357OxzN78LyNG@cafeteriaapp.f1d3z24.mongodb.net/?retryWrites=true&w=majority&appName=CafeteriaApp",
-    { useNewUrlParser: true, useUnifiedTopology: true }
+    "mongodb+srv://othervarma:vzu357OxzN78LyNG@cafeteriaapp.f1d3z24.mongodb.net/?retryWrites=true&w=majority&appName=CafeteriaApp"
   )
   .then(() => console.log("Connected to DB"))
   .catch((err) => console.log(err));
@@ -60,6 +59,11 @@ const usersSchema = new mongoose.Schema({
 });
 
 const User = mongoose.model("User", usersSchema, "users");
+
+// Handle requests to the root URL
+app.get("/", (req, res) => {
+  res.send("Welcome to the API! Use /item, /users, or other endpoints.");
+});
 
 // Create a new item
 app.post("/item", async (req, res) => {
