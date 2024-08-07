@@ -196,66 +196,62 @@ const App = () => {
       setLoading(true); // Show the loader
       setStatusMessage(""); // Clear previous status messages
 
-      // Update user orders
-      const selectedUsers = forms
-        .map((form) => form.selectedPerson?.value)
-        .filter(Boolean);
-      for (const user of selectedUsers) {
-        const form = forms.find((f) => f.selectedPerson.value === user);
-        for (const item of form.selectedItems) {
-          await axios.post("https://8v8x3g-5000.csb.app/update-user-orders", {
-            name: user,
-            itemName: item.label,
-          });
-        }
-      }
-
-      // Update item orders
-      const allSelectedItems = forms.flatMap((form) => form.selectedItems);
-      for (const item of allSelectedItems) {
-        await axios.post("https://8v8x3g-5000.csb.app/update-item-orders", {
+      // Prepare data for API calls
+      const orders = forms.flatMap((form) => {
+        return form.selectedItems.map((item) => ({
+          userName: form.selectedPerson.value,
           itemName: item.label,
           mealType: mealType,
-        });
-      }
+        }));
+      });
+
+      // Update user orders
+      const userOrders = orders.map((order) =>
+        axios.post("https://8v8x3g-5000.csb.app/update-user-orders", {
+          name: order.userName,
+          itemName: order.itemName,
+        })
+      );
+      await Promise.all(userOrders);
+
+      // Update item orders
+      const itemOrders = orders.map((order) =>
+        axios.post("https://8v8x3g-5000.csb.app/update-item-orders", {
+          itemName: order.itemName,
+          mealType: order.mealType,
+        })
+      );
+      await Promise.all(itemOrders);
 
       // Refresh data after confirming orders
-      const responseUsers = await axios.get(
-        "https://8v8x3g-5000.csb.app/users"
-      );
-      const sortedUsers = responseUsers.data.sort((a, b) => {
-        const today = new Date()
-          .toLocaleDateString("en-us", { weekday: "long" })
-          .toLowerCase();
-        return b.totalOrders[today] - a.totalOrders[today];
-      });
-      setUsers(sortedUsers);
-
-      const responseItems = await axios.get(
-        "https://8v8x3g-5000.csb.app/item",
-        {
+      const [responseUsers, responseItems] = await Promise.all([
+        axios.get("https://8v8x3g-5000.csb.app/users"),
+        axios.get("https://8v8x3g-5000.csb.app/item", {
           params: { mealType: mealType },
-        }
-      );
+        }),
+      ]);
       const today = new Date()
         .toLocaleDateString("en-us", { weekday: "long" })
         .toLowerCase();
+      const sortedUsers = responseUsers.data.sort(
+        (a, b) => b.totalOrders[today] - a.totalOrders[today]
+      );
       const sortedItems = responseItems.data.sort(
         (a, b) => b.dailyOrders[today] - a.dailyOrders[today]
       );
+      setUsers(sortedUsers);
       setItems(sortedItems);
-
-      // Reset forms after 2 seconds
-      setTimeout(() => {
-        setForms([{ selectedItems: [], selectedPerson: null }]);
-        setStatusMessage("");
-      }, 3000);
     } catch (err) {
       console.log(err);
       setStatusMessage("Error confirming order.");
     } finally {
       setLoading(false);
       setStatusMessage("Order confirmed successfully!");
+      // Reset forms after 2 seconds
+      setTimeout(() => {
+        setForms([{ selectedItems: [], selectedPerson: null }]);
+        setStatusMessage("");
+      }, 3000);
     }
   };
 
@@ -349,7 +345,15 @@ const App = () => {
       >
         <h1>Cafeteria Application</h1>
       </div>
-      <div style={{ position: "absolute", top: 10, left: 10 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          gap: "10px",
+          marginBottom: "20px",
+          flexWrap: "wrap",
+        }}
+      >
         <Button
           variant="contained"
           onClick={() => setMealType("breakfast")}
@@ -375,6 +379,9 @@ const App = () => {
             alignItems: "center",
             gap: "5px",
             marginBottom: "10px",
+            "@media (min-width: 1000px)": {
+              display: "none", // Hide this layout on small devices
+            },
           }}
         >
           <Autocomplete
@@ -436,6 +443,79 @@ const App = () => {
           </IconButton>
         </form>
       ))}
+
+      {/* {forms.map((form, index) => (
+        <form
+          key={index}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "10px",
+            marginBottom: "10px",
+          }}
+        >
+          <Autocomplete
+            disablePortal
+            id={`combo-box-user-${index}`}
+            options={[...userOptions, { label: "Add New User", value: "" }]}
+            value={form.selectedPerson}
+            onChange={(event, newValue) => {
+              if (newValue && newValue.value === "") {
+                handleOpenUserDialog();
+              } else {
+                handlePersonChange(index, newValue);
+              }
+            }}
+            sx={{ width: 300 }}
+            renderInput={(params) => <TextField {...params} label="Person" />}
+          />
+
+          <Autocomplete
+            multiple
+            disablePortal
+            id={`combo-box-item-${index}`}
+            options={[...itemOptions, { label: "Add New Item", value: "" }]}
+            value={form.selectedItems}
+            onChange={(event, newValue) => {
+              if (newValue && newValue.some((item) => item.value === "")) {
+                handleOpenItemDialog();
+              } else {
+                handleItemChange(index, newValue);
+              }
+            }}
+            getOptionLabel={(option) => option.label}
+            sx={{ width: 300 }}
+            renderInput={(params) => <TextField {...params} label="Order" />}
+          />
+
+          <TextField
+            id={`outlined-read-only-input-${index}`}
+            label="Total Cost"
+            value={`${calculateTotalCost(form.selectedItems).toFixed(2)}`}
+            InputProps={{
+              readOnly: true,
+            }}
+          />
+
+          <div style={{ display: "flex", gap: "10px" }}>
+            <IconButton onClick={handleAddForm}>
+              <AddCircleOutlineRoundedIcon
+                sx={{ height: "30px", width: "30px", padding: "0px" }}
+              />
+            </IconButton>
+
+            <IconButton
+              color="primary"
+              aria-label="delete"
+              onClick={() => handleDeleteForm(index)}
+              disabled={forms.length === 1} // Disable if only one form
+            >
+              <DeleteIcon />
+            </IconButton>
+          </div>
+        </form>
+      ))} */}
 
       <TableContainer component={Paper} style={{ marginTop: "20px" }}>
         <Table>
