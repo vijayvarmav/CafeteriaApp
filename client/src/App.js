@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import CircularProgress from "@mui/material/CircularProgress";
 import {
   Autocomplete,
   Button,
@@ -39,7 +40,8 @@ const App = () => {
   const [formToDeleteIndex, setFormToDeleteIndex] = useState(null);
   const [openResetConfirmDialog, setOpenResetConfirmDialog] = useState(false);
   const [loadingItems, setLoadingItems] = useState(false);
-  const [mealType, setMealType] = useState("Lunch");
+  const [mealType, setMealType] = useState("lunch");
+  const [loading, setLoading] = useState(false);
 
   // Fetch and sort users
   useEffect(() => {
@@ -163,6 +165,10 @@ const App = () => {
       );
       setStatusMessage("Data reset successfully!");
       setOpenResetConfirmDialog(false);
+
+      setTimeout(() => {
+        setStatusMessage("");
+      }, 3000);
     } catch (err) {
       console.log(err);
       setStatusMessage("Error resetting data.");
@@ -185,8 +191,10 @@ const App = () => {
         return;
       }
     }
+
     try {
-      setStatusMessage("Processing...");
+      setLoading(true); // Show the loader
+      setStatusMessage(""); // Clear previous status messages
 
       // Update user orders
       const selectedUsers = forms
@@ -207,7 +215,7 @@ const App = () => {
       for (const item of allSelectedItems) {
         await axios.post("https://8v8x3g-5000.csb.app/update-item-orders", {
           itemName: item.label,
-          mealType: mealType, // Add mealType here
+          mealType: mealType,
         });
       }
 
@@ -226,7 +234,7 @@ const App = () => {
       const responseItems = await axios.get(
         "https://8v8x3g-5000.csb.app/item",
         {
-          params: { mealType: mealType }, // Add mealType here
+          params: { mealType: mealType },
         }
       );
       const today = new Date()
@@ -237,16 +245,17 @@ const App = () => {
       );
       setItems(sortedItems);
 
-      setStatusMessage("Order confirmed successfully!");
-
       // Reset forms after 2 seconds
       setTimeout(() => {
         setForms([{ selectedItems: [], selectedPerson: null }]);
         setStatusMessage("");
-      }, 2000);
+      }, 3000);
     } catch (err) {
       console.log(err);
       setStatusMessage("Error confirming order.");
+    } finally {
+      setLoading(false);
+      setStatusMessage("Order confirmed successfully!");
     }
   };
 
@@ -461,16 +470,22 @@ const App = () => {
             </TableRow>
             <TableRow>
               <TableCell colSpan={4} style={{ textAlign: "center" }}>
-                <Button onClick={handleReset}>Reset</Button>
+                {loading ? (
+                  <CircularProgress sx={{ height: "5px", width: "5px" }} />
+                ) : (
+                  <>
+                    <Button onClick={handleReset}>Reset</Button>
 
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleConfirmOrder}
-                >
-                  Confirm Order
-                </Button>
-                {statusMessage && <p>{statusMessage}</p>}
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={handleConfirmOrder}
+                    >
+                      Confirm Order
+                    </Button>
+                    {statusMessage && <p>{statusMessage}</p>}
+                  </>
+                )}
               </TableCell>
             </TableRow>
           </TableBody>
