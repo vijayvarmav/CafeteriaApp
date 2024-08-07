@@ -38,8 +38,8 @@ const App = () => {
   const [openDeleteConfirmDialog, setOpenDeleteConfirmDialog] = useState(false);
   const [formToDeleteIndex, setFormToDeleteIndex] = useState(null);
   const [openResetConfirmDialog, setOpenResetConfirmDialog] = useState(false);
-
-  const [mealType, setMealType] = useState("Breakfast");
+  const [loadingItems, setLoadingItems] = useState(false);
+  const [mealType, setMealType] = useState("Lunch");
 
   // Fetch and sort users
   useEffect(() => {
@@ -63,16 +63,14 @@ const App = () => {
   // Fetch and sort items based on selected user
   useEffect(() => {
     const fetchItems = async () => {
+      setLoadingItems(true);
       try {
-        // Fetch items based on mealType
-        const response = await axios.get(
-          `https://8v8x3g-5000.csb.app/items/${mealType}`
-        );
+        const response = await axios.get("https://8v8x3g-5000.csb.app/item", {
+          params: { mealType: mealType }, // Add mealType here
+        });
         const today = new Date()
           .toLocaleDateString("en-us", { weekday: "long" })
           .toLowerCase();
-
-        // Sort items based on daily orders
         const defaultItems = response.data.sort(
           (a, b) => b.dailyOrders[today] - a.dailyOrders[today]
         );
@@ -81,19 +79,20 @@ const App = () => {
           const user = users.find((user) => user.name === selectedUser);
           if (user && user.totalOrders[today] === 0) {
             setItems(defaultItems);
-            return;
+          } else {
+            const responseSortedItems = await axios.post(
+              "https://8v8x3g-5000.csb.app/items-sorted-by-user",
+              { userName: selectedUser, mealType: mealType } // Add mealType here
+            );
+            setItems(responseSortedItems.data);
           }
-          // Fetch user-specific sorted items
-          const responseSortedItems = await axios.post(
-            "https://8v8x3g-5000.csb.app/items-sorted-by-user",
-            { userName: selectedUser }
-          );
-          setItems(responseSortedItems.data);
         } else {
           setItems(defaultItems);
         }
       } catch (err) {
         console.log(err);
+      } finally {
+        setLoadingItems(false);
       }
     };
 
@@ -109,11 +108,13 @@ const App = () => {
       value: user.name,
     }));
 
-  const itemOptions = items.map((item) => ({
-    label: item.itemName,
-    value: item.itemName,
-    cost: parseFloat(item.cost),
-  }));
+  const itemOptions = loadingItems
+    ? [] // Show empty or loading indicator
+    : items.map((item) => ({
+        label: item.itemName,
+        value: item.itemName,
+        cost: parseFloat(item.cost),
+      }));
 
   const handleAddForm = () => {
     setForms([...forms, { selectedItems: [], selectedPerson: null }]);
@@ -176,15 +177,14 @@ const App = () => {
     // Check for empty fields
     for (const form of forms) {
       if (!form.selectedPerson) {
-        setStatusMessage("Please select a person for each form.");
+        setStatusMessage("Please fill in the user field.");
         return;
       }
       if (form.selectedItems.length === 0) {
-        setStatusMessage("Please select at least one item for each form.");
+        setStatusMessage("Please fill in the item field.");
         return;
       }
     }
-
     try {
       setStatusMessage("Processing...");
 
@@ -207,6 +207,7 @@ const App = () => {
       for (const item of allSelectedItems) {
         await axios.post("https://8v8x3g-5000.csb.app/update-item-orders", {
           itemName: item.label,
+          mealType: mealType, // Add mealType here
         });
       }
 
@@ -222,7 +223,12 @@ const App = () => {
       });
       setUsers(sortedUsers);
 
-      const responseItems = await axios.get("https://8v8x3g-5000.csb.app/item");
+      const responseItems = await axios.get(
+        "https://8v8x3g-5000.csb.app/item",
+        {
+          params: { mealType: mealType }, // Add mealType here
+        }
+      );
       const today = new Date()
         .toLocaleDateString("en-us", { weekday: "long" })
         .toLowerCase();
@@ -275,14 +281,14 @@ const App = () => {
       await axios.post("https://8v8x3g-5000.csb.app/item", {
         itemName: newItemName,
         cost: newItemCost,
-        mealType: mealType.toLowerCase(), // Pass meal type as part of the request
+        mealType: mealType, // Add mealType here
       });
       setNewItemName("");
       setNewItemCost("");
       handleCloseItemDialog();
-      const response = await axios.get(
-        `https://8v8x3g-5000.csb.app/items/${mealType.toLowerCase()}`
-      );
+      const response = await axios.get("https://8v8x3g-5000.csb.app/item", {
+        params: { mealType: mealType }, // Add mealType here
+      });
       const today = new Date()
         .toLocaleDateString("en-us", { weekday: "long" })
         .toLowerCase();

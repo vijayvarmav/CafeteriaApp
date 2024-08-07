@@ -18,7 +18,6 @@ mongoose
   .then(() => console.log("Connected to DB"))
   .catch((err) => console.log(err));
 
-// Item Sub-schema for Breakfast
 const breakfastSchema = new mongoose.Schema({
   itemName: String,
   cost: String,
@@ -31,7 +30,6 @@ const breakfastSchema = new mongoose.Schema({
   },
 });
 
-// Item Sub-schema for Lunch
 const lunchSchema = new mongoose.Schema({
   itemName: String,
   cost: String,
@@ -44,14 +42,8 @@ const lunchSchema = new mongoose.Schema({
   },
 });
 
-// Main Item Schema
-const itemsSchema = new mongoose.Schema({
-  breakfast: [breakfastSchema],
-  lunch: [lunchSchema],
-  mealType: { type: String, enum: ["breakfast", "lunch"], required: true },
-});
-
-const Item = mongoose.model("Item", itemsSchema, "items");
+const Breakfast = mongoose.model("Breakfast", breakfastSchema, "breakfast");
+const Lunch = mongoose.model("Lunch", lunchSchema, "lunch");
 
 // DailyOrder Sub-schema
 const dailyOrderSchema = new mongoose.Schema({
@@ -88,15 +80,11 @@ app.get("/", (req, res) => {
 // Create a new item
 app.post("/item", async (req, res) => {
   try {
-    const { itemName, cost, mealType } = req.body;
-    const newItem = new Item({
-      mealType,
-      ...(mealType === "breakfast"
-        ? { breakfast: [{ itemName, cost }] }
-        : { lunch: [{ itemName, cost }] }),
-    });
-    await newItem.save();
-    res.status(201).send(newItem);
+    const { mealType, ...itemData } = req.body;
+    const Model = mealType === "breakfast" ? Breakfast : Lunch;
+    const data = new Model(itemData);
+    await data.save();
+    res.status(201).send(data);
   } catch (err) {
     console.log(err);
     res.status(500).send({ message: "Error creating item", error: err });
@@ -104,39 +92,24 @@ app.post("/item", async (req, res) => {
 });
 
 // Get all items
-app.get("/items/:mealType", async (req, res) => {
-  const { mealType } = req.params;
-  const dayOfWeek = new Date().getDay();
-  const days = [
-    "sunday",
-    "monday",
-    "tuesday",
-    "wednesday",
-    "thursday",
-    "friday",
-    "saturday",
-  ];
-  const orderField = `dailyOrders.${days[dayOfWeek]}`;
-
+app.get("/item", async (req, res) => {
   try {
-    if (!["breakfast", "lunch"].includes(mealType)) {
-      return res.status(400).send({ message: "Invalid mealType" });
-    }
+    const { mealType } = req.query;
+    const Model = mealType === "breakfast" ? Breakfast : Lunch;
+    const dayOfWeek = new Date().getDay();
+    const days = [
+      "sunday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+    ];
+    const orderField = `dailyOrders.${days[dayOfWeek]}`;
 
-    const items = await Item.find();
-    let sortedItems;
-
-    if (mealType === "breakfast") {
-      sortedItems = items
-        .flatMap((item) => item.breakfast)
-        .sort((a, b) => b[orderField] - a[orderField]);
-    } else {
-      sortedItems = items
-        .flatMap((item) => item.lunch)
-        .sort((a, b) => b[orderField] - a[orderField]);
-    }
-
-    res.json(sortedItems);
+    const items = await Model.find().sort({ [orderField]: -1 });
+    res.json(items);
   } catch (err) {
     console.log(err);
     res.status(500).send({ message: "Error fetching items", error: err });
@@ -144,32 +117,35 @@ app.get("/items/:mealType", async (req, res) => {
 });
 
 // Update item's daily order count
-app.post("/item", async (req, res) => {
+app.post("/update-item-orders", async (req, res) => {
   try {
-    const { itemName, cost, mealType } = req.body;
+    const { itemName, mealType } = req.body;
+    const Model = mealType === "breakfast" ? Breakfast : Lunch;
+    const dayOfWeek = new Date().getDay();
+    const days = [
+      "sunday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+    ];
+    const updateField = `dailyOrders.${days[dayOfWeek]}`;
 
-    // Check if the mealType is valid
-    if (!["breakfast", "lunch"].includes(mealType)) {
-      return res.status(400).send({ message: "Invalid mealType" });
-    }
-
-    const update = {};
-    if (mealType === "breakfast") {
-      update["breakfast"] = { itemName, cost };
-    } else {
-      update["lunch"] = { itemName, cost };
-    }
-
-    const item = await Item.findOneAndUpdate(
-      { [`${mealType}.itemName`]: itemName },
-      { $set: update },
-      { new: true, upsert: true } // upsert will create the document if it doesn't exist
+    const item = await Model.findOneAndUpdate(
+      { itemName },
+      { $inc: { [updateField]: 1 } },
+      { new: true }
     );
-
-    res.status(201).send(item);
+    if (item) {
+      res.status(200).send({ message: "Item orders updated", item });
+    } else {
+      res.status(404).send({ message: "Item not found" });
+    }
   } catch (err) {
     console.log(err);
-    res.status(500).send({ message: "Error creating item", error: err });
+    res.status(500).send({ message: "Error updating item orders", error: err });
   }
 });
 
@@ -211,8 +187,8 @@ app.get("/users", async (req, res) => {
 // Update user's daily order count
 app.post("/update-user-orders", async (req, res) => {
   try {
-    const { name, itemName } = req.body;
-    const dayOfWeek = new Date().getDay(); // Get the current day of the week (0-6)
+    const { name, itemName, mealType } = req.body;
+    const dayOfWeek = new Date().getDay();
     const days = [
       "sunday",
       "monday",
@@ -249,14 +225,15 @@ app.post("/update-user-orders", async (req, res) => {
 });
 
 // Example Express route to handle reset
-// Example Express route to handle reset
 app.post("/reset", async (req, res) => {
   try {
     // Reset item counts and user orders, but keep names
     await User.updateMany({}, { $set: { totalOrders: {} } });
-    await User.updateMany({}, { $set: { dailyOrders: {} } }); // Reset totalOrders
-    // Reset totalOrders
-    await Item.updateMany({}, { $set: { dailyOrders: {} } }); // Reset dailyOrders
+    await User.updateMany({}, { $set: { dailyOrders: {} } }); // Reset dailyOrders
+
+    // Reset Breakfast and Lunch collections
+    await Breakfast.updateMany({}, { $set: { dailyOrders: {} } });
+    await Lunch.updateMany({}, { $set: { dailyOrders: {} } });
 
     // Respond with success message
     res.status(200).send("Data reset successfully.");
@@ -269,7 +246,7 @@ app.post("/reset", async (req, res) => {
 // New endpoint to get items sorted by user's order counts
 app.post("/items-sorted-by-user", async (req, res) => {
   try {
-    const { userName } = req.body;
+    const { userName, mealType } = req.body; // Add mealType in the request body
     const dayOfWeek = new Date().getDay(); // Get the current day of the week (0-6)
     const days = [
       "sunday",
@@ -294,8 +271,11 @@ app.post("/items-sorted-by-user", async (req, res) => {
       itemOrderCounts[order.itemName] = order.orderCount;
     });
 
+    // Determine which model to use based on meal type
+    const Model = mealType === "breakfast" ? Breakfast : Lunch;
+
     // Get all items and sort by the user's order count
-    const items = await Item.find();
+    const items = await Model.find();
     items.sort((a, b) => {
       const aCount = itemOrderCounts[a.itemName] || 0;
       const bCount = itemOrderCounts[b.itemName] || 0;
