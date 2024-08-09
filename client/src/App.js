@@ -16,6 +16,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  InputAdornment,
 } from "@mui/material";
 import AddCircleOutlineRoundedIcon from "@mui/icons-material/AddCircleOutlineRounded";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -47,7 +48,7 @@ const App = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.get("https://8v8x3g-5000.csb.app/users");
+        const response = await axios.get("https://z4kw6g-5000.csb.app/users");
         const today = new Date()
           .toLocaleDateString("en-us", { weekday: "long" })
           .toLowerCase();
@@ -67,7 +68,7 @@ const App = () => {
     const fetchItems = async () => {
       setLoadingItems(true);
       try {
-        const response = await axios.get("https://8v8x3g-5000.csb.app/item", {
+        const response = await axios.get("https://z4kw6g-5000.csb.app/item", {
           params: { mealType: mealType }, // Add mealType here
         });
         const today = new Date()
@@ -83,7 +84,7 @@ const App = () => {
             setItems(defaultItems);
           } else {
             const responseSortedItems = await axios.post(
-              "https://8v8x3g-5000.csb.app/items-sorted-by-user",
+              "https://z4kw6g-5000.csb.app/items-sorted-by-user",
               { userName: selectedUser, mealType: mealType } // Add mealType here
             );
             setItems(responseSortedItems.data);
@@ -119,7 +120,10 @@ const App = () => {
       }));
 
   const handleAddForm = () => {
-    setForms([...forms, { selectedItems: [], selectedPerson: null }]);
+    setForms((prevForms) => [
+      { selectedItems: [], selectedPerson: null },
+      ...prevForms,
+    ]);
   };
 
   const handleDeleteForm = (index) => {
@@ -156,7 +160,7 @@ const App = () => {
   const handleConfirmReset = async () => {
     try {
       // Call the reset endpoint
-      await axios.post("https://8v8x3g-5000.csb.app/reset");
+      await axios.post("https://z4kw6g-5000.csb.app/reset");
       setForms(
         forms.map((form) => ({
           ...form,
@@ -207,7 +211,7 @@ const App = () => {
 
       // Update user orders
       const userOrders = orders.map((order) =>
-        axios.post("https://8v8x3g-5000.csb.app/update-user-orders", {
+        axios.post("https://z4kw6g-5000.csb.app/update-user-orders", {
           name: order.userName,
           itemName: order.itemName,
         })
@@ -216,7 +220,7 @@ const App = () => {
 
       // Update item orders
       const itemOrders = orders.map((order) =>
-        axios.post("https://8v8x3g-5000.csb.app/update-item-orders", {
+        axios.post("https://z4kw6g-5000.csb.app/update-item-orders", {
           itemName: order.itemName,
           mealType: order.mealType,
         })
@@ -225,8 +229,8 @@ const App = () => {
 
       // Refresh data after confirming orders
       const [responseUsers, responseItems] = await Promise.all([
-        axios.get("https://8v8x3g-5000.csb.app/users"),
-        axios.get("https://8v8x3g-5000.csb.app/item", {
+        axios.get("https://z4kw6g-5000.csb.app/users"),
+        axios.get("https://z4kw6g-5000.csb.app/item", {
           params: { mealType: mealType },
         }),
       ]);
@@ -263,12 +267,12 @@ const App = () => {
 
   const handleAddUser = async () => {
     try {
-      await axios.post("https://8v8x3g-5000.csb.app/users", {
+      await axios.post("https://z4kw6g-5000.csb.app/users", {
         name: newUserName,
       });
       setNewUserName("");
       handleCloseUserDialog();
-      const response = await axios.get("https://8v8x3g-5000.csb.app/users");
+      const response = await axios.get("https://z4kw6g-5000.csb.app/users");
       const sortedUsers = response.data.sort((a, b) => {
         const today = new Date()
           .toLocaleDateString("en-us", { weekday: "long" })
@@ -283,7 +287,7 @@ const App = () => {
 
   const handleAddItem = async () => {
     try {
-      await axios.post("https://8v8x3g-5000.csb.app/item", {
+      await axios.post("https://z4kw6g-5000.csb.app/item", {
         itemName: newItemName,
         cost: newItemCost,
         mealType: mealType, // Add mealType here
@@ -291,7 +295,7 @@ const App = () => {
       setNewItemName("");
       setNewItemCost("");
       handleCloseItemDialog();
-      const response = await axios.get("https://8v8x3g-5000.csb.app/item", {
+      const response = await axios.get("https://z4kw6g-5000.csb.app/item", {
         params: { mealType: mealType }, // Add mealType here
       });
       const today = new Date()
@@ -357,17 +361,37 @@ const App = () => {
         <Button
           variant="contained"
           onClick={() => setMealType("breakfast")}
-          disabled={mealType === "breakfast"}
+          sx={{
+            backgroundColor:
+              mealType === "breakfast" ? "primary.main" : "grey.500",
+            color: mealType === "breakfast" ? "white" : "text.disabled",
+            "&:hover": {
+              backgroundColor:
+                mealType === "breakfast" ? "primary.dark" : "grey.700",
+            },
+          }}
         >
           Breakfast
         </Button>
         <Button
           variant="contained"
           onClick={() => setMealType("lunch")}
-          disabled={mealType === "lunch"}
+          sx={{
+            backgroundColor: mealType === "lunch" ? "primary.main" : "grey.500",
+            color: mealType === "lunch" ? "white" : "text.disabled",
+            "&:hover": {
+              backgroundColor:
+                mealType === "lunch" ? "primary.dark" : "grey.700",
+            },
+          }}
         >
           Lunch
         </Button>
+        <IconButton onClick={handleAddForm}>
+          <AddCircleOutlineRoundedIcon
+            sx={{ height: "30px", width: "30px", padding: "0px" }}
+          />
+        </IconButton>
       </div>
 
       {forms.map((form, index) => (
@@ -376,12 +400,9 @@ const App = () => {
           style={{
             display: "flex",
             justifyContent: "center",
-            alignItems: "center",
-            gap: "5px",
+            alignItems: "start",
+            gap: "0",
             marginBottom: "10px",
-            "@media (min-width: 1000px)": {
-              display: "none", // Hide this layout on small devices
-            },
           }}
         >
           <Autocomplete
@@ -396,8 +417,25 @@ const App = () => {
                 handlePersonChange(index, newValue);
               }
             }}
-            sx={{ width: 300 }}
-            renderInput={(params) => <TextField {...params} label="Person" />}
+            getOptionLabel={(option) => option.label.substring(0, 3)} // Show only first 3 characters
+            sx={{
+              width: 100,
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Person"
+                InputProps={{
+                  ...params.InputProps,
+                  sx: {
+                    "& input": {
+                      textOverflow: "ellipsis", // Ensure text is truncated with ellipsis
+                      overflow: "hidden",
+                    },
+                  },
+                }}
+              />
+            )}
           />
 
           <Autocomplete
@@ -414,108 +452,50 @@ const App = () => {
               }
             }}
             getOptionLabel={(option) => option.label}
-            sx={{ width: 300 }}
-            renderInput={(params) => <TextField {...params} label="Order" />}
+            sx={{ width: 220, padding: 0 }} // Make autocomplete full width
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Order"
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <InputAdornment position="end" sx={{ marginRight: "2px" }}>
+                      {params.InputProps.endAdornment}
+                    </InputAdornment>
+                  ),
+                  sx: {
+                    "& input": {
+                      paddingRight: "10px", // Adjust padding to reduce space between text and dropdown arrow
+                    },
+                  },
+                }}
+              />
+            )}
           />
 
           <TextField
             id={`outlined-read-only-input-${index}`}
-            label="Total Cost"
+            label="Cost"
             value={`${calculateTotalCost(form.selectedItems).toFixed(2)}`}
             InputProps={{
               readOnly: true,
             }}
+            sx={{
+              width: 100,
+            }}
           />
-
-          <IconButton onClick={handleAddForm}>
-            <AddCircleOutlineRoundedIcon
-              sx={{ height: "30px", width: "30px", padding: "0px" }}
-            />
-          </IconButton>
 
           <IconButton
             color="primary"
             aria-label="delete"
             onClick={() => handleDeleteForm(index)}
-            disabled={forms.length === 1} // Disable if only one form
+            sx={{ padding: "8px" }}
           >
-            <DeleteIcon />
+            <DeleteIcon sx={{ width: "fit-content" }} />
           </IconButton>
         </form>
       ))}
-
-      {/* {forms.map((form, index) => (
-        <form
-          key={index}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "10px",
-            marginBottom: "10px",
-          }}
-        >
-          <Autocomplete
-            disablePortal
-            id={`combo-box-user-${index}`}
-            options={[...userOptions, { label: "Add New User", value: "" }]}
-            value={form.selectedPerson}
-            onChange={(event, newValue) => {
-              if (newValue && newValue.value === "") {
-                handleOpenUserDialog();
-              } else {
-                handlePersonChange(index, newValue);
-              }
-            }}
-            sx={{ width: 300 }}
-            renderInput={(params) => <TextField {...params} label="Person" />}
-          />
-
-          <Autocomplete
-            multiple
-            disablePortal
-            id={`combo-box-item-${index}`}
-            options={[...itemOptions, { label: "Add New Item", value: "" }]}
-            value={form.selectedItems}
-            onChange={(event, newValue) => {
-              if (newValue && newValue.some((item) => item.value === "")) {
-                handleOpenItemDialog();
-              } else {
-                handleItemChange(index, newValue);
-              }
-            }}
-            getOptionLabel={(option) => option.label}
-            sx={{ width: 300 }}
-            renderInput={(params) => <TextField {...params} label="Order" />}
-          />
-
-          <TextField
-            id={`outlined-read-only-input-${index}`}
-            label="Total Cost"
-            value={`${calculateTotalCost(form.selectedItems).toFixed(2)}`}
-            InputProps={{
-              readOnly: true,
-            }}
-          />
-
-          <div style={{ display: "flex", gap: "10px" }}>
-            <IconButton onClick={handleAddForm}>
-              <AddCircleOutlineRoundedIcon
-                sx={{ height: "30px", width: "30px", padding: "0px" }}
-              />
-            </IconButton>
-
-            <IconButton
-              color="primary"
-              aria-label="delete"
-              onClick={() => handleDeleteForm(index)}
-              disabled={forms.length === 1} // Disable if only one form
-            >
-              <DeleteIcon />
-            </IconButton>
-          </div>
-        </form>
-      ))} */}
 
       <TableContainer component={Paper} style={{ marginTop: "20px" }}>
         <Table>
