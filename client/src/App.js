@@ -17,14 +17,18 @@ import {
   DialogContent,
   DialogTitle,
   InputAdornment,
+  Box,
 } from "@mui/material";
 import AddCircleOutlineRoundedIcon from "@mui/icons-material/AddCircleOutlineRounded";
 import DeleteIcon from "@mui/icons-material/Delete";
 import axios from "axios";
+import "./App.css";
 
 const App = () => {
   const [users, setUsers] = useState([]);
   const [items, setItems] = useState([]);
+  const [breakfastItems, setBreakfastItems] = useState([]);
+  const [lunchItems, setLunchItems] = useState([]);
   const [forms, setForms] = useState([
     { selectedItems: [], selectedPerson: null },
   ]);
@@ -40,8 +44,9 @@ const App = () => {
   const [openDeleteConfirmDialog, setOpenDeleteConfirmDialog] = useState(false);
   const [formToDeleteIndex, setFormToDeleteIndex] = useState(null);
   const [openResetConfirmDialog, setOpenResetConfirmDialog] = useState(false);
-  const [loadingItems, setLoadingItems] = useState(false);
-  const [mealType, setMealType] = useState("lunch");
+  const [loadingBreakfast, setLoadingBreakfast] = useState(false);
+  const [loadingLunch, setLoadingLunch] = useState(false);
+  const [mealType, setMealType] = useState(" ");
   const [loading, setLoading] = useState(false);
 
   // Fetch and sort users
@@ -63,13 +68,12 @@ const App = () => {
     fetchUsers();
   }, []);
 
-  // Fetch and sort items based on selected user
   useEffect(() => {
-    const fetchItems = async () => {
-      setLoadingItems(true);
+    const fetchBreakfastItems = async () => {
+      setLoadingBreakfast(true);
       try {
         const response = await axios.get("https://z4kw6g-5000.csb.app/item", {
-          params: { mealType: mealType }, // Add mealType here
+          params: { mealType: "breakfast" },
         });
         const today = new Date()
           .toLocaleDateString("en-us", { weekday: "long" })
@@ -81,26 +85,64 @@ const App = () => {
         if (selectedUser) {
           const user = users.find((user) => user.name === selectedUser);
           if (user && user.totalOrders[today] === 0) {
-            setItems(defaultItems);
+            setBreakfastItems(defaultItems);
           } else {
             const responseSortedItems = await axios.post(
               "https://z4kw6g-5000.csb.app/items-sorted-by-user",
-              { userName: selectedUser, mealType: mealType } // Add mealType here
+              { userName: selectedUser, mealType: "breakfast" }
             );
-            setItems(responseSortedItems.data);
+            setBreakfastItems(responseSortedItems.data);
           }
         } else {
-          setItems(defaultItems);
+          setBreakfastItems(defaultItems);
         }
       } catch (err) {
         console.log(err);
       } finally {
-        setLoadingItems(false);
+        setLoadingBreakfast(false);
       }
     };
 
-    fetchItems();
-  }, [selectedUser, users, mealType]);
+    fetchBreakfastItems();
+  }, [selectedUser, users]);
+
+  useEffect(() => {
+    const fetchLunchItems = async () => {
+      setLoadingLunch(true);
+      try {
+        const response = await axios.get("https://z4kw6g-5000.csb.app/item", {
+          params: { mealType: "lunch" },
+        });
+        const today = new Date()
+          .toLocaleDateString("en-us", { weekday: "long" })
+          .toLowerCase();
+        const defaultItems = response.data.sort(
+          (a, b) => b.dailyOrders[today] - a.dailyOrders[today]
+        );
+
+        if (selectedUser) {
+          const user = users.find((user) => user.name === selectedUser);
+          if (user && user.totalOrders[today] === 0) {
+            setLunchItems(defaultItems);
+          } else {
+            const responseSortedItems = await axios.post(
+              "https://z4kw6g-5000.csb.app/items-sorted-by-user",
+              { userName: selectedUser, mealType: "lunch" }
+            );
+            setLunchItems(responseSortedItems.data);
+          }
+        } else {
+          setLunchItems(defaultItems);
+        }
+      } catch (err) {
+        console.log(err);
+      } finally {
+        setLoadingLunch(false);
+      }
+    };
+
+    fetchLunchItems();
+  }, [selectedUser, users]);
 
   const userOptions = users
     .filter(
@@ -111,9 +153,17 @@ const App = () => {
       value: user.name,
     }));
 
-  const itemOptions = loadingItems
+  const breakfastItemOptions = loadingBreakfast
     ? [] // Show empty or loading indicator
-    : items.map((item) => ({
+    : breakfastItems.map((item) => ({
+        label: item.itemName,
+        value: item.itemName,
+        cost: parseFloat(item.cost),
+      }));
+
+  const lunchItemOptions = loadingLunch
+    ? [] // Show empty or loading indicator
+    : lunchItems.map((item) => ({
         label: item.itemName,
         value: item.itemName,
         cost: parseFloat(item.cost),
@@ -150,6 +200,22 @@ const App = () => {
   const handleItemChange = (index, newValue) => {
     const newForms = [...forms];
     newForms[index].selectedItems = newValue;
+
+    // Determine mealType based on selected items
+    const selectedItem = newValue[0]; // Assuming you want to set mealType based on the first selected item
+    if (selectedItem) {
+      const selectedMealType = breakfastItemOptions.some(
+        (item) => item.value === selectedItem.value
+      )
+        ? "breakfast"
+        : lunchItemOptions.some((item) => item.value === selectedItem.value)
+        ? "lunch"
+        : "";
+
+      // Update the mealType state
+      setMealType(selectedMealType);
+    }
+
     setForms(newForms);
   };
 
@@ -202,11 +268,22 @@ const App = () => {
 
       // Prepare data for API calls
       const orders = forms.flatMap((form) => {
-        return form.selectedItems.map((item) => ({
-          userName: form.selectedPerson.value,
-          itemName: item.label,
-          mealType: mealType,
-        }));
+        return form.selectedItems.map((item) => {
+          // Determine meal type based on selected item
+          const mealType = breakfastItemOptions.some(
+            (bItem) => bItem.value === item.value
+          )
+            ? "breakfast"
+            : lunchItemOptions.some((lItem) => lItem.value === item.value)
+            ? "lunch"
+            : "";
+
+          return {
+            userName: form.selectedPerson.value,
+            itemName: item.label,
+            mealType: mealType, // Set the determined meal type
+          };
+        });
       });
 
       // Update user orders
@@ -231,7 +308,7 @@ const App = () => {
       const [responseUsers, responseItems] = await Promise.all([
         axios.get("https://z4kw6g-5000.csb.app/users"),
         axios.get("https://z4kw6g-5000.csb.app/item", {
-          params: { mealType: mealType },
+          params: { mealType: "lunch" }, // Use correct meal type here
         }),
       ]);
       const today = new Date()
@@ -287,23 +364,45 @@ const App = () => {
 
   const handleAddItem = async () => {
     try {
-      await axios.post("https://z4kw6g-5000.csb.app/item", {
+      // Create a new item object
+      const newItem = {
         itemName: newItemName,
         cost: newItemCost,
-        mealType: mealType, // Add mealType here
-      });
+        mealType: mealType?.type, // Make sure to use the correct mealType
+      };
+
+      // Send a request to add the item
+      await axios.post("https://z4kw6g-5000.csb.app/item", newItem);
+
+      // Clear the input fields
       setNewItemName("");
       setNewItemCost("");
       handleCloseItemDialog();
+
+      // Optimistically update the breakfast or lunch items in local state
+      setItems((prevItems) => [...prevItems, newItem]); // Add the new item to the items array
+
+      // Update the local breakfast or lunch items based on meal type
+      if (mealType?.type === "breakfast") {
+        setBreakfastItems((prevItems) => [...prevItems, newItem]); // Add to breakfast items
+      } else if (mealType?.type === "lunch") {
+        setLunchItems((prevItems) => [...prevItems, newItem]); // Add to lunch items
+      }
+
+      // Optionally fetch the updated items based on the meal type (if necessary)
       const response = await axios.get("https://z4kw6g-5000.csb.app/item", {
-        params: { mealType: mealType }, // Add mealType here
+        params: { mealType: mealType?.type }, // Make sure to pass the mealType.type
       });
+
+      // Sort the items as before
       const today = new Date()
         .toLocaleDateString("en-us", { weekday: "long" })
         .toLowerCase();
       const sortedItems = response.data.sort(
         (a, b) => b.dailyOrders[today] - a.dailyOrders[today]
       );
+
+      // Update the state with sorted items
       setItems(sortedItems);
     } catch (err) {
       console.log(err);
@@ -338,6 +437,82 @@ const App = () => {
   const totalPrice = calculateTotalCost(allSelectedItems);
   const aggregatedItems = aggregateItems(allSelectedItems);
 
+  const mealOptions = [
+    { label: "Breakfast", type: "breakfast" },
+    { label: "Lunch", type: "lunch" },
+  ];
+
+  const getCurrentGroupedOptions = () => {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const currentTime = hours * 100 + minutes; // Convert to a time in HHMM format
+
+    // Define the cutoff times
+    const breakfastEnd = 1130; // 11:30 AM
+    const lunchStart = 400; // 4:00 AM
+    const lunchEnd = 1130; // 11:30 AM
+
+    let options = [];
+
+    if (currentTime >= lunchStart && currentTime <= lunchEnd) {
+      options = [
+        {
+          title: "Lunch Menu",
+          items: lunchItemOptions,
+        },
+        {
+          title: "Breakfast Menu",
+          items: breakfastItemOptions,
+        },
+        {
+          title: "Add Item",
+          items: [{ label: "Add New Item", value: "" }],
+        },
+      ];
+    } else if (currentTime > lunchEnd && currentTime <= 2400) {
+      // After 11:30 AM and before end of day
+      options = [
+        {
+          title: "Lunch Menu",
+          items: lunchItemOptions,
+        },
+        {
+          title: "Breakfast Menu",
+          items: breakfastItemOptions,
+        },
+        {
+          title: "Add Item",
+          items: [{ label: "Add New Item", value: "" }],
+        },
+      ];
+    } else if (currentTime >= 0 && currentTime < lunchStart) {
+      // Before 11:30 AM
+      options = [
+        {
+          title: "Breakfast Menu",
+          items: breakfastItemOptions,
+        },
+        {
+          title: "Lunch Menu",
+          items: lunchItemOptions,
+        },
+        {
+          title: "Add Item",
+          items: [{ label: "Add New Item", value: "" }],
+        },
+      ];
+    }
+
+    return options;
+  };
+  const [groupedOptions, setGroupedOptions] = useState(
+    getCurrentGroupedOptions()
+  );
+  useEffect(() => {
+    setGroupedOptions(getCurrentGroupedOptions());
+  }, [breakfastItems, lunchItems]);
+
   return (
     <div>
       <div
@@ -358,35 +533,6 @@ const App = () => {
           flexWrap: "wrap",
         }}
       >
-        <Button
-          variant="contained"
-          onClick={() => setMealType("breakfast")}
-          sx={{
-            backgroundColor:
-              mealType === "breakfast" ? "primary.main" : "grey.500",
-            color: mealType === "breakfast" ? "white" : "text.disabled",
-            "&:hover": {
-              backgroundColor:
-                mealType === "breakfast" ? "primary.dark" : "grey.700",
-            },
-          }}
-        >
-          Breakfast
-        </Button>
-        <Button
-          variant="contained"
-          onClick={() => setMealType("lunch")}
-          sx={{
-            backgroundColor: mealType === "lunch" ? "primary.main" : "grey.500",
-            color: mealType === "lunch" ? "white" : "text.disabled",
-            "&:hover": {
-              backgroundColor:
-                mealType === "lunch" ? "primary.dark" : "grey.700",
-            },
-          }}
-        >
-          Lunch
-        </Button>
         <IconButton onClick={handleAddForm}>
           <AddCircleOutlineRoundedIcon
             sx={{ height: "30px", width: "30px", padding: "0px" }}
@@ -394,117 +540,185 @@ const App = () => {
         </IconButton>
       </div>
 
-      {forms.map((form, index) => (
-        <form
-          key={index}
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "start",
-            gap: "0",
-            marginBottom: "10px",
-          }}
-        >
-          <Autocomplete
-            disablePortal
-            id={`combo-box-user-${index}`}
-            options={[...userOptions, { label: "Add New User", value: "" }]}
-            value={form.selectedPerson}
-            onChange={(event, newValue) => {
-              if (newValue && newValue.value === "") {
-                handleOpenUserDialog();
-              } else {
-                handlePersonChange(index, newValue);
-              }
-            }}
-            getOptionLabel={(option) => option.label.substring(0, 3)} // Show only first 3 characters
-            sx={{
-              width: 100,
-            }}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Person"
-                InputProps={{
-                  ...params.InputProps,
-                  sx: {
-                    "& input": {
-                      textOverflow: "ellipsis", // Ensure text is truncated with ellipsis
-                      overflow: "hidden",
-                    },
-                  },
-                }}
-              />
-            )}
-          />
+      <TableContainer component={Paper} style={{ marginTop: "20px" }}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ width: 20, padding: 0 }}>Person</TableCell>
+              <TableCell sx={{ minWidth: 220, maxWidth: 220, padding: 0 }}>
+                Food Item
+              </TableCell>
+              <TableCell sx={{ minWidth: 50, maxWidth: 50, padding: 0 }}>
+                Cost
+              </TableCell>
+              <TableCell sx={{ width: 50, padding: 0 }}>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {forms.map((form, index) => (
+              <TableRow key={index}>
+                <TableCell sx={{ width: 20, padding: 0 }}>
+                  <Autocomplete
+                    disablePortal
+                    id={`combo-box-user-${index}`}
+                    options={[
+                      ...userOptions,
+                      { label: "Add New User", value: "" },
+                    ]}
+                    value={form.selectedPerson}
+                    onChange={(event, newValue) => {
+                      if (newValue && newValue.value === "") {
+                        handleOpenUserDialog();
+                      } else {
+                        handlePersonChange(index, newValue);
+                      }
+                    }}
+                    getOptionLabel={(option) => option.label.substring(0, 3)} // Show only first 3 characters
+                    sx={{
+                      width: "100%",
+                      padding: 0,
+                      "& .MuiAutocomplete-hasPopupIcon.MuiAutocomplete-hasClearIcon.css-8j5cdv-MuiAutocomplete-root .MuiOutlinedInput-root":
+                        {
+                          paddingRight: 0,
+                        },
+                      "& .MuiAutocomplete-hasPopupIcon.MuiAutocomplete-hasClearIcon.css-8j5cdv-MuiAutocomplete-root .MuiAutocomplete-inputRoot":
+                        {
+                          paddingRight: 0,
+                        },
+                    }} // Make autocomplete full width
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        InputProps={{
+                          ...params.InputProps,
+                          sx: {
+                            "& input": {
+                              textOverflow: "ellipsis", // Ensure text is truncated with ellipsis
+                              overflow: "visible",
+                              padding: 0, // Remove padding inside input
+                            },
+                            padding: 0, // Remove padding of the TextField itself
+                          },
+                          "& .MuiAutocomplete-hasPopupIcon.MuiAutocomplete-hasClearIcon.css-8j5cdv-MuiAutocomplete-root .MuiOutlinedInput-root":
+                            {
+                              paddingRight: 0,
+                            },
+                          "& .MuiAutocomplete-hasPopupIcon.MuiAutocomplete-hasClearIcon.css-8j5cdv-MuiAutocomplete-root .MuiAutocomplete-inputRoot":
+                            {
+                              paddingRight: 0,
+                            },
+                        }}
+                      />
+                    )}
+                  />
+                </TableCell>
+                <TableCell sx={{ minWidth: 200, maxWidth: 200, padding: 0 }}>
+                  <Autocomplete
+                    multiple
+                    disablePortal
+                    id={`combo-box-item-${index}`}
+                    options={groupedOptions.flatMap((group) =>
+                      group.items.map((item) => ({
+                        ...item,
+                        group: group.title,
+                      }))
+                    )}
+                    groupBy={(option) => option.group}
+                    value={form.selectedItems}
+                    onChange={(event, newValue) => {
+                      if (
+                        newValue &&
+                        newValue.some((item) => item.value === "")
+                      ) {
+                        handleOpenItemDialog();
+                      } else {
+                        handleItemChange(index, newValue);
+                      }
+                    }}
+                    getOptionLabel={(option) => option.label}
+                    sx={{
+                      width: "100%",
 
-          <Autocomplete
-            multiple
-            disablePortal
-            id={`combo-box-item-${index}`}
-            options={[...itemOptions, { label: "Add New Item", value: "" }]}
-            value={form.selectedItems}
-            onChange={(event, newValue) => {
-              if (newValue && newValue.some((item) => item.value === "")) {
-                handleOpenItemDialog();
-              } else {
-                handleItemChange(index, newValue);
-              }
-            }}
-            getOptionLabel={(option) => option.label}
-            sx={{ width: 220, padding: 0 }} // Make autocomplete full width
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Order"
-                InputProps={{
-                  ...params.InputProps,
-                  endAdornment: (
-                    <InputAdornment position="end" sx={{ marginRight: "2px" }}>
-                      {params.InputProps.endAdornment}
-                    </InputAdornment>
-                  ),
-                  sx: {
-                    "& input": {
-                      paddingRight: "10px", // Adjust padding to reduce space between text and dropdown arrow
-                    },
-                  },
-                }}
-              />
-            )}
-          />
-
-          <TextField
-            id={`outlined-read-only-input-${index}`}
-            label="Cost"
-            value={`${calculateTotalCost(form.selectedItems).toFixed(2)}`}
-            InputProps={{
-              readOnly: true,
-            }}
-            sx={{
-              width: 100,
-            }}
-          />
-
-          <IconButton
-            color="primary"
-            aria-label="delete"
-            onClick={() => handleDeleteForm(index)}
-            sx={{ padding: "8px" }}
-          >
-            <DeleteIcon sx={{ width: "fit-content" }} />
-          </IconButton>
-        </form>
-      ))}
+                      padding: 0,
+                      overflowY: "auto",
+                      maxHeight: "50px",
+                      "& .css-6od3lo-MuiChip-label": {
+                        overflow: "visible",
+                      },
+                    }} // Apply the style overrides here
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        InputProps={{
+                          ...params.InputProps,
+                          endAdornment: (
+                            <InputAdornment position="end" sx={{ padding: 0 }}>
+                              {params.InputProps.endAdornment}
+                            </InputAdornment>
+                          ),
+                          sx: {
+                            "& input": {
+                              paddingRight: 0, // Ensure input padding is also set to 0
+                              paddingLeft: 0, // Ensure input padding left is also set to 0
+                              padding: 0,
+                            },
+                            padding: 0,
+                          },
+                        }}
+                        sx={{ padding: 0 }} // Remove padding of the TextField itself
+                      />
+                    )}
+                    renderOption={(props, option) => (
+                      <li {...props} style={{ padding: 0 }}>
+                        {option.label}
+                      </li>
+                    )}
+                  />
+                </TableCell>
+                <TableCell sx={{ width: 50, padding: 0 }}>
+                  <TextField
+                    id={`outlined-read-only-input-${index}`}
+                    value={`${calculateTotalCost(form.selectedItems).toFixed(
+                      2
+                    )}`}
+                    InputProps={{
+                      readOnly: true,
+                    }}
+                    sx={{
+                      width: "100%",
+                      padding: 0,
+                      "& .css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input":
+                        {
+                          padding: "16px 0px",
+                          textAlign: "center",
+                        }, // Remove padding of the TextField itself
+                    }}
+                  />
+                </TableCell>
+                <TableCell sx={{ width: 50, padding: 0 }}>
+                  <IconButton
+                    color="primary"
+                    aria-label="delete"
+                    onClick={() => handleDeleteForm(index)}
+                    sx={{ padding: "8px", margin: 0, color: "red" }} // Remove margin and padding
+                  >
+                    <DeleteIcon sx={{ width: "fit-content" }} />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
       <TableContainer component={Paper} style={{ marginTop: "20px" }}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Items</TableCell>
-              <TableCell>Quantity</TableCell>
-              <TableCell>Unit Price</TableCell>
-              <TableCell>Total Price</TableCell>
+              <TableCell style={{ fontWeight: "bold" }}>Items</TableCell>
+              <TableCell style={{ fontWeight: "bold" }}>Quantity</TableCell>
+              <TableCell style={{ fontWeight: "bold" }}>Price</TableCell>
+              <TableCell style={{ fontWeight: "bold" }}>Sum</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -518,24 +732,37 @@ const App = () => {
                 )}`}</TableCell>
               </TableRow>
             ))}
-            <TableRow>
-              <TableCell>
-                <strong>Total Quantity</strong>
+            <TableRow style={{ textAlign: "center" }}>
+              <TableCell style={{ textAlign: "center", fontSize: "16px" }}>
+                <strong>Total Person:</strong> <span>{forms.length}</span>
               </TableCell>
-              <TableCell>{totalQuantity}</TableCell>
-              <TableCell>
-                <strong>Final Price</strong>
+              <TableCell style={{ textAlign: "center", fontSize: "16px" }}>
+                <strong>Total Quantity:</strong> <span>{totalQuantity}</span>
               </TableCell>
-              <TableCell>{`${totalPrice.toFixed(2)}`}</TableCell>
+              <TableCell style={{ textAlign: "center", fontSize: "16px" }}>
+                <strong>Total Price:</strong>{" "}
+                <span>{`${totalPrice.toFixed(2)}`}</span>
+              </TableCell>
             </TableRow>
+
             <TableRow>
               <TableCell colSpan={4} style={{ textAlign: "center" }}>
                 {loading ? (
-                  <CircularProgress sx={{ height: "5px", width: "5px" }} />
+                  <CircularProgress sx={{ height: "24px", width: "24px" }} />
                 ) : (
                   <>
-                    <Button onClick={handleReset}>Reset</Button>
-
+                    <Button
+                      style={{
+                        marginRight: "10px",
+                        color: "red",
+                        fontWeight: "500",
+                      }}
+                      onClick={() => {
+                        setForms([{ selectedItems: [], selectedPerson: null }]);
+                      }}
+                    >
+                      Reset
+                    </Button>
                     <Button
                       variant="contained"
                       color="primary"
@@ -551,6 +778,14 @@ const App = () => {
           </TableBody>
         </Table>
       </TableContainer>
+      <Box sx={{ display: "flex", justifyContent: "center" }}>
+        <Button
+          style={{ marginRight: "10px", color: "red", fontWeight: "700" }}
+          onClick={handleReset}
+        >
+          Reset Database
+        </Button>
+      </Box>
 
       {/* User Dialog */}
       <Dialog open={openUserDialog} onClose={handleCloseUserDialog}>
@@ -570,7 +805,6 @@ const App = () => {
           <Button onClick={handleAddUser}>Add</Button>
         </DialogActions>
       </Dialog>
-
       {/* Item Dialog */}
       <Dialog open={openItemDialog} onClose={handleCloseItemDialog}>
         <DialogTitle>Create New Item</DialogTitle>
@@ -591,13 +825,32 @@ const App = () => {
             value={newItemCost}
             onChange={(e) => setNewItemCost(e.target.value)}
           />
+          <Autocomplete
+            disablePortal
+            id="combo-box-demo"
+            options={mealOptions}
+            sx={{ width: 300 }}
+            renderInput={(params) => <TextField {...params} label="Meal" />}
+            value={mealType} // Update this line to use the state correctlyddd
+            onChange={(event, newValue) => {
+              // Ensure newValue is being handled correctly
+              if (newValue) {
+                setMealType(newValue); // Set the selected meal type
+              } else {
+                setMealType(null); // Handle case where no value is selected
+              }
+            }}
+            getOptionLabel={(option) => option.label || ""}
+            isOptionEqualToValue={(option, value) =>
+              option.label === value.label
+            }
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseItemDialog}>Cancel</Button>
           <Button onClick={handleAddItem}>Add</Button>
         </DialogActions>
       </Dialog>
-
       {/* Delete Confirm Dialog */}
       <Dialog open={openDeleteConfirmDialog} onClose={handleCancelDeleteForm}>
         <DialogTitle>Confirm Delete</DialogTitle>
@@ -609,7 +862,6 @@ const App = () => {
           <Button onClick={handleConfirmDeleteForm}>Confirm</Button>
         </DialogActions>
       </Dialog>
-
       {/* Reset Confirm Dialog */}
       <Dialog open={openResetConfirmDialog} onClose={handleCancelReset}>
         <DialogTitle>Confirm Reset</DialogTitle>
