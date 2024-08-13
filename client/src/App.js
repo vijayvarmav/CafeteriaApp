@@ -449,54 +449,40 @@ const App = () => {
     const currentTime = hours * 100 + minutes; // Convert to a time in HHMM format
 
     // Define the cutoff times
-    const breakfastEnd = 1130; // 11:30 AM
-    const lunchStart = 400; // 4:00 AM
-    const lunchEnd = 1130; // 11:30 AM
+
+    const BreakfastStart = 400; // 4:00 AM
+    const BreakfastEnd = 1130; // 11:30 AM
 
     let options = [];
 
-    if (currentTime >= lunchStart && currentTime <= lunchEnd) {
-      options = [
-        {
-          title: "Lunch Menu",
-          items: lunchItemOptions,
-        },
-        {
-          title: "Breakfast Menu",
-          items: breakfastItemOptions,
-        },
-        {
-          title: "Add Item",
-          items: [{ label: "Add New Item", value: "" }],
-        },
-      ];
-    } else if (currentTime > lunchEnd && currentTime <= 2400) {
+    if (currentTime >= BreakfastStart && currentTime < BreakfastEnd) {
       // After 11:30 AM and before end of day
       options = [
         {
-          title: "Lunch Menu",
-          items: lunchItemOptions,
-        },
-        {
           title: "Breakfast Menu",
           items: breakfastItemOptions,
         },
+        {
+          title: "Lunch Menu",
+          items: lunchItemOptions,
+        },
+
         {
           title: "Add Item",
           items: [{ label: "Add New Item", value: "" }],
         },
       ];
-    } else if (currentTime >= 0 && currentTime < lunchStart) {
-      // Before 11:30 AM
+    } else {
       options = [
-        {
-          title: "Breakfast Menu",
-          items: breakfastItemOptions,
-        },
         {
           title: "Lunch Menu",
           items: lunchItemOptions,
         },
+        {
+          title: "Breakfast Menu",
+          items: breakfastItemOptions,
+        },
+
         {
           title: "Add Item",
           items: [{ label: "Add New Item", value: "" }],
