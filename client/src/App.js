@@ -25,6 +25,10 @@ import axios from "axios";
 import "./App.css";
 
 const App = () => {
+  const [quantityDialogOpen, setQuantityDialogOpen] = useState(false);
+  const [currentItem, setCurrentItem] = useState(null);
+  const [quantity, setQuantity] = useState(1);
+
   const [users, setUsers] = useState([]);
   const [items, setItems] = useState([]);
   const [breakfastItems, setBreakfastItems] = useState([]);
@@ -198,25 +202,48 @@ const App = () => {
   };
 
   const handleItemChange = (index, newValue) => {
-    const newForms = [...forms];
-    newForms[index].selectedItems = newValue;
+    // Get the selected item and the previously selected items
+    const previouslySelectedItems = forms[index].selectedItems;
+    const newlySelectedItems = newValue;
 
-    // Determine mealType based on selected items
-    const selectedItem = newValue[0]; // Assuming you want to set mealType based on the first selected item
-    if (selectedItem) {
-      const selectedMealType = breakfastItemOptions.some(
-        (item) => item.value === selectedItem.value
-      )
-        ? "breakfast"
-        : lunchItemOptions.some((item) => item.value === selectedItem.value)
-        ? "lunch"
-        : "";
+    // Identify the removed items
+    const removedItems = previouslySelectedItems.filter(
+      (item) =>
+        !newlySelectedItems.some((newItem) => newItem.value === item.value)
+    );
 
-      // Update the mealType state
-      setMealType(selectedMealType);
+    if (removedItems.length > 0) {
+      // Handle item removal
+      const newForms = [...forms];
+      newForms[index].selectedItems = newlySelectedItems;
+      setForms(newForms);
+    } else if (newlySelectedItems.length > 0) {
+      // Handle item addition
+      setCurrentItem(newlySelectedItems[newlySelectedItems.length - 1]);
+      setQuantity(1); // Default quantity
+      setQuantityDialogOpen(true);
     }
+  };
 
-    setForms(newForms);
+  const handleQuantityChange = (event) => {
+    setQuantity(Number(event.target.value));
+  };
+
+  const handleAddItemWithQuantity = () => {
+    if (currentItem) {
+      const newForms = [...forms];
+      const selectedForm = newForms[0]; // Assuming you want to add the item to the first form
+
+      // Add the item with the specified quantity
+      selectedForm.selectedItems.push({ ...currentItem, quantity });
+
+      setForms(newForms);
+      setQuantityDialogOpen(false);
+    }
+  };
+
+  const handleCloseQuantityDialog = () => {
+    setQuantityDialogOpen(false);
   };
 
   const handleReset = () => {
@@ -410,11 +437,10 @@ const App = () => {
   };
 
   const calculateTotalCost = (items) => {
-    return items.reduce((total, item) => total + item.cost, 0);
-  };
-
-  const calculateTotalQuantity = (items) => {
-    return items.length;
+    return items.reduce(
+      (total, item) => total + (item.cost * item.quantity || 1),
+      0
+    );
   };
 
   const aggregateItems = (items) => {
@@ -423,13 +449,17 @@ const App = () => {
     items.forEach((item) => {
       const existingItem = itemMap.get(item.label);
       if (existingItem) {
-        existingItem.quantity += 1;
+        existingItem.quantity += item.quantity || 1;
       } else {
-        itemMap.set(item.label, { ...item, quantity: 1 });
+        itemMap.set(item.label, { ...item, quantity: item.quantity || 1 });
       }
     });
 
     return Array.from(itemMap.values());
+  };
+
+  const calculateTotalQuantity = (items) => {
+    return items.reduce((total, item) => total + (item.quantity || 0), 0);
   };
 
   const allSelectedItems = forms.flatMap((form) => form.selectedItems);
@@ -498,6 +528,26 @@ const App = () => {
   useEffect(() => {
     setGroupedOptions(getCurrentGroupedOptions());
   }, [breakfastItems, lunchItems]);
+  const handleItemRemove = (index, itemToRemove) => {
+    const newForms = [...forms];
+    const selectedForm = newForms[index];
+
+    // Find the item in the selectedItems array
+    const itemIndex = selectedForm.selectedItems.findIndex(
+      (item) => item.value === itemToRemove.value
+    );
+
+    if (itemIndex !== -1) {
+      // Reduce quantity or remove item if quantity is less than 1
+      if (selectedForm.selectedItems[itemIndex].quantity > 1) {
+        selectedForm.selectedItems[itemIndex].quantity -= 1;
+      } else {
+        selectedForm.selectedItems.splice(itemIndex, 1);
+      }
+
+      setForms(newForms);
+    }
+  };
 
   return (
     <div>
@@ -607,31 +657,26 @@ const App = () => {
                       group.items.map((item) => ({
                         ...item,
                         group: group.title,
+                        quantity: 1, // Default quantity
                       }))
                     )}
                     groupBy={(option) => option.group}
                     value={form.selectedItems}
-                    onChange={(event, newValue) => {
-                      if (
-                        newValue &&
-                        newValue.some((item) => item.value === "")
-                      ) {
-                        handleOpenItemDialog();
-                      } else {
-                        handleItemChange(index, newValue);
-                      }
-                    }}
-                    getOptionLabel={(option) => option.label}
+                    onChange={(event, newValue) =>
+                      handleItemChange(index, newValue)
+                    }
+                    getOptionLabel={(option) =>
+                      `${option.label} (Qty: ${option.quantity})`
+                    }
                     sx={{
                       width: "100%",
-
                       padding: 0,
                       overflowY: "auto",
                       maxHeight: "50px",
                       "& .css-6od3lo-MuiChip-label": {
                         overflow: "visible",
                       },
-                    }} // Apply the style overrides here
+                    }}
                     renderInput={(params) => (
                       <TextField
                         {...params}
@@ -644,21 +689,48 @@ const App = () => {
                           ),
                           sx: {
                             "& input": {
-                              paddingRight: 0, // Ensure input padding is also set to 0
-                              paddingLeft: 0, // Ensure input padding left is also set to 0
+                              paddingRight: 0,
+                              paddingLeft: 0,
                               padding: 0,
                             },
                             padding: 0,
                           },
                         }}
-                        sx={{ padding: 0 }} // Remove padding of the TextField itself
                       />
                     )}
                     renderOption={(props, option) => (
-                      <li {...props} style={{ padding: 0 }}>
-                        {option.label}
+                      <li
+                        {...props}
+                        style={{
+                          padding: 0,
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <span>{`${option.label} (Qty: ${option.quantity})`}</span>
+                        <IconButton
+                          color="primary"
+                          aria-label="remove"
+                          onClick={(event) => {
+                            event.stopPropagation(); // Prevent triggering any other events
+                            handleItemRemove(index, option);
+                          }}
+                          sx={{ padding: "4px" }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
                       </li>
                     )}
+                    onDelete={(event, option) => {
+                      // Handle item removal
+                      handleItemChange(
+                        index,
+                        form.selectedItems.filter(
+                          (item) => item.value !== option.value
+                        )
+                      );
+                    }}
                   />
                 </TableCell>
                 <TableCell sx={{ width: 50, padding: 0 }}>
@@ -774,6 +846,26 @@ const App = () => {
       </Box>
 
       {/* User Dialog */}
+      <Dialog open={quantityDialogOpen} onClose={handleCloseQuantityDialog}>
+        <DialogTitle>Enter Quantity</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Quantity"
+            type="number"
+            fullWidth
+            value={quantity}
+            onChange={handleQuantityChange}
+            inputProps={{ min: 1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseQuantityDialog}>Cancel</Button>
+          <Button onClick={handleAddItemWithQuantity}>Add</Button>
+        </DialogActions>
+      </Dialog>
+
       <Dialog open={openUserDialog} onClose={handleCloseUserDialog}>
         <DialogTitle>Create New User</DialogTitle>
         <DialogContent>
