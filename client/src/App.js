@@ -25,6 +25,7 @@ import axios from "axios";
 import "./App.css";
 
 const App = () => {
+  const [currentItemFormIndex, setCurrentItemFormIndex] = useState(null);
   const [quantityDialogOpen, setQuantityDialogOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState(null);
   const [quantity, setQuantity] = useState(1);
@@ -202,6 +203,10 @@ const App = () => {
   };
 
   const handleItemChange = (index, newValue) => {
+    if (newValue.some((item) => item.value === "")) {
+      handleOpenItemDialog(); // Open dialog if "Add New Item" is selected
+      return; // Exit function to prevent further processing
+    }
     // Get the selected item and the previously selected items
     const previouslySelectedItems = forms[index].selectedItems;
     const newlySelectedItems = newValue;
@@ -222,6 +227,7 @@ const App = () => {
       setCurrentItem(newlySelectedItems[newlySelectedItems.length - 1]);
       setQuantity(1); // Default quantity
       setQuantityDialogOpen(true);
+      setCurrentItemFormIndex(index);
     }
   };
 
@@ -230,9 +236,9 @@ const App = () => {
   };
 
   const handleAddItemWithQuantity = () => {
-    if (currentItem) {
+    if (currentItem !== null) {
       const newForms = [...forms];
-      const selectedForm = newForms[0]; // Assuming you want to add the item to the first form
+      const selectedForm = newForms[currentItemFormIndex]; // Use the correct form index
 
       // Add the item with the specified quantity
       selectedForm.selectedItems.push({ ...currentItem, quantity });
@@ -612,6 +618,7 @@ const App = () => {
                     getOptionLabel={(option) => option.label.substring(0, 3)} // Show only first 3 characters
                     sx={{
                       width: "100%",
+                      zIndex: 1300,
                       padding: 0,
                       "& .MuiAutocomplete-hasPopupIcon.MuiAutocomplete-hasClearIcon.css-8j5cdv-MuiAutocomplete-root .MuiOutlinedInput-root":
                         {
@@ -670,6 +677,7 @@ const App = () => {
                     }
                     sx={{
                       width: "100%",
+                      zIndex: 1300,
                       padding: 0,
                       overflowY: "auto",
                       maxHeight: "50px",
