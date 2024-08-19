@@ -673,16 +673,38 @@ const App = () => {
                       handleItemChange(index, newValue)
                     }
                     getOptionLabel={(option) =>
-                      `${option.label} (Qty: ${option.quantity})`
+                      `${option.label} (${option.quantity})`
                     }
                     sx={{
                       width: "100%",
                       zIndex: 1300,
                       padding: 0,
+                      margin: 0,
                       overflowY: "auto",
                       maxHeight: "50px",
-                      "& .css-6od3lo-MuiChip-label": {
-                        overflow: "visible",
+                      "& .MuiAutocomplete-tag": {
+                        margin: 0,
+                        padding: 0,
+                        minWidth: "fit-content",
+                        flexGrow: 1,
+                        display: "flex",
+                        justifyContent: "space-between",
+                      },
+                      "& .MuiChip-label": {
+                        padding: "0",
+                      },
+                      "& .MuiAutocomplete-inputRoot": {
+                        padding: 0,
+                        margin: 0,
+                      },
+                      "& .MuiInputBase-input": {
+                        padding: 0,
+                      },
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        border: "none",
+                      },
+                      "& .MuiInputAdornment-root": {
+                        padding: 0,
                       },
                     }}
                     renderInput={(params) => (
