@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import "slick-carousel/slick/slick.css"; 
+import "slick-carousel/slick/slick-theme.css";
+
 import {
   Container,
   Grid,
@@ -21,8 +24,10 @@ import {
   DialogContent,
   DialogTitle,
   TextField,
+  useMediaQuery,
 } from '@mui/material';
 import { Add, Remove, Edit, Delete } from '@mui/icons-material';
+import Slider from 'react-slick';
 
 const App = () => {
   const [users, setUsers] = useState([]);
@@ -39,6 +44,8 @@ const App = () => {
     cost: '',
     mealType: 'Lunch',
   });
+
+  const isSmallScreen = useMediaQuery('(max-width: 600px)');
 
   useEffect(() => {
     const initializeLocalStorage = () => {
@@ -241,208 +248,259 @@ const App = () => {
     return summary.some((entry) => entry.user === user) ? 'green' : 'gray';
   };
 
+  const sliderSettings = {
+    dots: true,
+    infinite: true,
+    speed: 500,
+    slidesToShow: 1,
+    slidesToScroll: 1,
+    arrows: true,
+    adaptiveHeight: true,
+  };
+
   return (
     <Container>
       <Typography variant="h4" gutterBottom align="center">
         Cafeteria App
       </Typography>
-      <Grid container sx={{ padding: '5px' }}>
-        <Grid item xs={3} sm={3}>
-          <Paper
-            elevation={3}
-            style={{
-              height: '70vh',
-              overflowY: 'scroll',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <Typography variant="h6" style={{ margin: 0 }}>
-              Users
-            </Typography>
-            <List style={{ flexGrow: 1, margin: 0, padding: 0 }}>
-              {users.map((user) => (
-                <ListItem
-                  key={user.name}
-                  button
-                  onClick={() => handleUserSelect(user.name)}
-                  style={{ padding: 0 }}
+      {isSmallScreen ? (
+        <Slider {...sliderSettings}>
+          <div>
+            <Grid item xs={12} sm={3}>
+              <Paper
+                elevation={3}
+                style={{
+                  height: '60vh',
+                  overflowY: 'scroll',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
                 >
-                  <span
-                    style={{
-                      display: 'inline-block',
-                      width: '7px',
-                      height: '7px',
-                      borderRadius: '50%',
-                      backgroundColor: getUserStatusColor(user.name),
-                      margin: '0px',
-                      marginLeft: '5px',
-                      padding: '0px',
-                    }}
-                  ></span>
-                  <Checkbox
-                    checked={selectedUsers.includes(user.name)}
-                    onChange={() => handleUserSelect(user.name)}
-                  />
-                  <ListItemText primary={user.name} style={{ margin: 0 }} />
-                </ListItem>
-              ))}
-              <ListItem>
+                  <List>
+                    {users.map((user) => (
+                      <ListItem key={user.name} button onClick={() => handleUserSelect(user.name)}>
+                        <Checkbox
+                          checked={selectedUsers.includes(user.name)}
+                          style={{ color: getUserStatusColor(user.name) }}
+                        />
+                        <ListItemText primary={user.name} />
+                      </ListItem>
+                    ))}
+                  </List>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => setUserDialogOpen(true)}
+                    startIcon={<Add />}
+                    style={{ marginTop: 'auto' }}
+                  >
+                    Add User
+                  </Button>
+                </Paper>
+              </Grid>
+            </div>
+            <div>
+              <Grid item xs={12} sm={9}>
+                <Paper
+                  elevation={3}
+                  style={{
+                    height: '60vh',
+                    overflowY: 'scroll',
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}
+                >
+                  <List>
+                    {[...breakfastItems, ...lunchItems].map((item) => (
+                      <ListItem key={item.itemName} button onClick={() => handleItemSelect(item)}>
+                        <Checkbox
+                          checked={selectedItems.some((i) => i.itemName === item.itemName)}
+                        />
+                        <ListItemText
+                          primary={item.itemName}
+                          secondary={`Cost: ₹${item.cost}`}
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => setItemDialogOpen(true)}
+                    startIcon={<Add />}
+                    style={{ marginTop: 'auto' }}
+                  >
+                    Add Item
+                  </Button>
+                </Paper>
+              </Grid>
+            </div>
+            <div>
+              <Grid item xs={12} sm={3}>
+                <Paper elevation={3} style={{ height: '60vh', padding: '16px' }}>
+                  <Typography variant="h6" gutterBottom>
+                    Summary
+                  </Typography>
+                  <List>
+                    {selectedItems.map((item) => (
+                      <ListItem key={item.itemName}>
+                        <IconButton
+                          onClick={() => handleQuantityChange(item, -1)}
+                        >
+                          <Remove />
+                        </IconButton>
+                        <ListItemText
+                          primary={`${item.itemName} x${item.quantity}`}
+                          secondary={`Cost: ₹${item.cost * item.quantity}`}
+                        />
+                        <IconButton
+                          onClick={() => handleQuantityChange(item, 1)}
+                        >
+                          <Add />
+                        </IconButton>
+                      </ListItem>
+                    ))}
+                  </List>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleConfirm}
+                    style={{ marginTop: 'auto' }}
+                  >
+                    Confirm
+                  </Button>
+                </Paper>
+              </Grid>
+            </div>
+          </Slider>
+        ) : (
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={3}>
+              <Paper
+                elevation={3}
+                style={{
+                  height: '60vh',
+                  overflowY: 'scroll',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
+                <List>
+                  {users.map((user) => (
+                    <ListItem key={user.name} button onClick={() => handleUserSelect(user.name)}>
+                      <Checkbox
+                        checked={selectedUsers.includes(user.name)}
+                        style={{ color: getUserStatusColor(user.name) }}
+                      />
+                      <ListItemText primary={user.name} />
+                    </ListItem>
+                  ))}
+                </List>
                 <Button
                   variant="contained"
                   color="primary"
                   onClick={() => setUserDialogOpen(true)}
                   startIcon={<Add />}
+                  style={{ marginTop: 'auto' }}
                 >
                   Add User
                 </Button>
-              </ListItem>
-            </List>
-          </Paper>
-        </Grid>
-
-        <Grid item xs={6} sm={6}>
-          <Paper
-            elevation={3}
-            style={{
-              height: '70vh',
-              overflowY: 'scroll',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <Typography variant="h6" style={{ margin: 0 }}>
-              Lunch Menu
-            </Typography>
-            <List style={{ flexGrow: 1, margin: 0, padding: 0 }}>
-              {lunchItems.map((item) => (
-                <ListItem
-                  key={item.itemName}
-                  button
-                  onClick={() => handleItemSelect(item)}
-                  style={{ padding: 0 }}
-                >
-                  <Checkbox
-                    checked={selectedItems.some(
-                      (i) => i.itemName === item.itemName
-                    )}
-                    onChange={() => handleItemSelect(item)}
-                  />
-                  <ListItemText
-                    primary={`${item.itemName} - $${item.cost}`}
-                    style={{ margin: 0 }}
-                  />
-                </ListItem>
-              ))}
-            </List>
-            <Typography variant="h6" style={{ margin: '10px 0 0 0' }}>
-              Breakfast Menu
-            </Typography>
-            <List style={{ flexGrow: 1, margin: 0, padding: 0 }}>
-              {breakfastItems.map((item) => (
-                <ListItem
-                  key={item.itemName}
-                  button
-                  onClick={() => handleItemSelect(item)}
-                  style={{ padding: 0 }}
-                >
-                  <Checkbox
-                    checked={selectedItems.some(
-                      (i) => i.itemName === item.itemName
-                    )}
-                    onChange={() => handleItemSelect(item)}
-                  />
-                  <ListItemText
-                    primary={`${item.itemName} - $${item.cost}`}
-                    style={{ margin: 0 }}
-                  />
-                </ListItem>
-              ))}
-              <ListItem>
+              </Paper>
+            </Grid>
+  
+            <Grid item xs={12} sm={6}>
+              <Paper
+                elevation={3}
+                style={{
+                  height: '60vh',
+                  overflowY: 'scroll',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
+                <List>
+                  {[...breakfastItems, ...lunchItems].map((item) => (
+                    <ListItem key={item.itemName} button onClick={() => handleItemSelect(item)}>
+                      <Checkbox
+                        checked={selectedItems.some((i) => i.itemName === item.itemName)}
+                      />
+                      <ListItemText
+                        primary={item.itemName}
+                        secondary={`Cost: ₹${item.cost}`}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
                 <Button
                   variant="contained"
                   color="primary"
                   onClick={() => setItemDialogOpen(true)}
                   startIcon={<Add />}
+                  style={{ marginTop: 'auto' }}
                 >
                   Add Item
                 </Button>
-              </ListItem>
-            </List>
-          </Paper>
-        </Grid>
-
-        <Grid item xs={3} sm={3}>
-          <Paper
-            elevation={3}
-            style={{
-              height: '70vh',
-              overflowY: 'scroll',
-              display: 'flex',
-              flexDirection: 'column',
-              padding: 0,
-            }}
-          >
-            <Typography variant="h6" style={{ margin: 0 }}>
-              Summary
-            </Typography>
-            <div style={{ flexGrow: 1, padding: 10 }}>
-              {selectedUsers.length > 0 && (
-                <>
-                  <Typography variant="subtitle1" style={{ margin: '10px 0' }}>
+              </Paper>
+            </Grid>
+  
+            <Grid item xs={12} sm={3}>
+              <Paper elevation={3} style={{ height: '60vh', padding: '16px' }}>
+                <Typography variant="h6" gutterBottom>
+                  Summary
+                </Typography>
+                <Typography variant="subtitle1" style={{ margin: '10px 0' }}>
                     Users: {selectedUsers.join(', ')}
                   </Typography>
-                  {selectedItems.length > 0 && (
-                    <List style={{ margin: 0, padding: 0 }}>
-                      {selectedItems.map((item) => (
-                        <ListItem key={item.itemName} style={{ padding: 0 }}>
-                          <ListItemText
-                            primary={`${item.itemName} - $${item.cost}`}
-                            style={{ margin: 0 }}
-                          />
-                          <IconButton
-                            onClick={() => handleQuantityChange(item, -1)}
-                          >
-                            <Remove />
-                          </IconButton>
-                          <Typography>{item.quantity}</Typography>
-                          <IconButton
-                            onClick={() => handleQuantityChange(item, 1)}
-                          >
-                            <Add />
-                          </IconButton>
-                        </ListItem>
-                      ))}
-                    </List>
-                  )}
-                  {selectedItems.length > 0 && (
+                <List>
+                  {selectedItems.map((item) => (
+                    <ListItem key={item.itemName}>
+                      
+                      <ListItemText
+                        primary={`${item.itemName}`}
+                        secondary={`Cost: ₹${item.cost * item.quantity}`}
+                      />
+                      <IconButton
+                        onClick={() => handleQuantityChange(item, -1)}
+                      >
+                        <Remove />
+                        <ListItemText
+                        primary={`${item.quantity}`}
+                        />
+                      </IconButton>
+                      <IconButton
+                        onClick={() => handleQuantityChange(item, 1)}
+                      >
+                        <Add />
+                      </IconButton>
+                    </ListItem>
+                  ))}
+                </List>
+                {selectedItems.length > 0 && (
                     <Typography
                       variant="subtitle1"
                       style={{ marginTop: '10px' }}
                     >
-                      Total: $
+                      Total: ₹
                       {selectedItems.reduce(
                         (acc, item) => acc + item.cost * item.quantity,
                         0
                       )}
                     </Typography>
                   )}
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    fullWidth
-                    onClick={handleConfirm}
-                    style={{ marginTop: '10px' }}
-                  >
-                    Confirm
-                  </Button>
-                </>
-              )}
-            </div>
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleConfirm}
+                  style={{ marginTop: 'auto' }}
+                >
+                  Confirm
+                </Button>
+              </Paper>
+            </Grid>
+          </Grid>
+        )}
+  
+  <Grid item xs={12}>
           <TableContainer
             component={Paper}
             elevation={3}
@@ -468,7 +526,7 @@ const App = () => {
                         </div>
                       ))}
                     </TableCell>
-                    <TableCell>${entry.totalCost}</TableCell>
+                    <TableCell>₹{entry.totalCost}</TableCell>
                     <TableCell>
                       <IconButton onClick={() => handleEdit(entry.user)}>
                         <Edit />
@@ -487,87 +545,78 @@ const App = () => {
                     Total Items Ordered: {totalItemsOrdered}
                   </TableCell>
                   <TableCell colSpan={2} style={{ fontWeight: 'bold' }}>
-                    Total Order Value: ${totalOrderValue}
+                    Total Order Value: ₹{totalOrderValue}
                   </TableCell>
                 </TableRow>
               </TableBody>
             </Table>
           </TableContainer>
         </Grid>
-      </Grid>
-
-      {/* User Dialog */}
-      <Dialog open={userDialogOpen} onClose={() => setUserDialogOpen(false)}>
-        <DialogTitle>Add New User</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="User Name"
-            type="text"
-            fullWidth
-            value={newUserName}
-            onChange={(e) => setNewUserName(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setUserDialogOpen(false)}>Cancel</Button>
-          <Button onClick={addUser} color="primary">
-            Add
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Item Dialog */}
-      {/* Item Dialog */}
-      <Dialog open={itemDialogOpen} onClose={() => setItemDialogOpen(false)}>
-        <DialogTitle>Add New Item</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Item Name"
-            type="text"
-            fullWidth
-            value={newItem.itemName}
-            onChange={(e) =>
-              setNewItem({ ...newItem, itemName: e.target.value })
-            }
-          />
-          <TextField
-            margin="dense"
-            label="Cost"
-            type="number"
-            fullWidth
-            value={newItem.cost}
-            onChange={(e) => setNewItem({ ...newItem, cost: e.target.value })}
-          />
-          <TextField
-            margin="dense"
-            label="Meal Type"
-            select
-            fullWidth
-            value={newItem.mealType}
-            onChange={(e) =>
-              setNewItem({ ...newItem, mealType: e.target.value })
-            }
-            SelectProps={{
-              native: true,
-            }}
-          >
-            <option value="Lunch">Lunch</option>
-            <option value="Breakfast">Breakfast</option>
-          </TextField>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setItemDialogOpen(false)}>Cancel</Button>
-          <Button onClick={addItem} color="primary">
-            Add
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Container>
-  );
-};
-
-export default App;
+  
+        <Dialog open={userDialogOpen} onClose={() => setUserDialogOpen(false)}>
+          <DialogTitle>Add New User</DialogTitle>
+          <DialogContent>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="User Name"
+              fullWidth
+              value={newUserName}
+              onChange={(e) => setNewUserName(e.target.value)}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setUserDialogOpen(false)}>Cancel</Button>
+            <Button onClick={addUser} color="primary">
+              Add
+            </Button>
+          </DialogActions>
+        </Dialog>
+  
+        <Dialog open={itemDialogOpen} onClose={() => setItemDialogOpen(false)}>
+          <DialogTitle>Add New Item</DialogTitle>
+          <DialogContent>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Item Name"
+              fullWidth
+              value={newItem.itemName}
+              onChange={(e) => setNewItem({ ...newItem, itemName: e.target.value })}
+            />
+            <TextField
+              margin="dense"
+              label="Cost"
+              type="number"
+              fullWidth
+              value={newItem.cost}
+              onChange={(e) => setNewItem({ ...newItem, cost: e.target.value })}
+            />
+            <TextField
+              margin="dense"
+              label="Meal Type"
+              fullWidth
+              select
+              SelectProps={{
+                native: true,
+              }}
+              value={newItem.mealType}
+              onChange={(e) => setNewItem({ ...newItem, mealType: e.target.value })}
+            >
+              <option value="Lunch">Lunch</option>
+              <option value="Breakfast">Breakfast</option>
+            </TextField>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setItemDialogOpen(false)}>Cancel</Button>
+            <Button onClick={addItem} color="primary">
+              Add
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Container>
+    );
+  };
+  
+  export default App;
+  
