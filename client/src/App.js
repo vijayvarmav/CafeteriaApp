@@ -450,17 +450,17 @@ const App = () => {
                 height: '60vh',
                 overflowY: 'scroll',
                 display: 'flex',
-                flexDirection: 'column', padding: '0px 16px'
+                flexDirection: 'column', 
               }}>
-                <Typography variant="h6" gutterBottom>
+                <Typography variant="h6" gutterBottom sx={{padding: '8px 16px'}}>
                   Summary
                 </Typography>
-                <Typography variant="subtitle1" style={{ margin: '10px 0' }}>
+                <Typography variant="subtitle1" style={{ margin: '10px 0',padding: '8px 16px' }}>
                   Users: {selectedUsers.join(', ')}
                 </Typography>
                 <List>
                   {selectedItems.map((item) => (
-                    <ListItem key={item.itemName}>
+                    <ListItem key={item.itemName} sx={{padding: '8px 16px'}}>
                       <ListItemText
                         primary={`${item.itemName}`}
                         secondary={`Cost: ₹${item.cost * item.quantity}`}
@@ -484,7 +484,7 @@ const App = () => {
                 {selectedItems.length > 0 && (
                   <Typography
                     variant="subtitle1"
-                    style={{ marginTop: '10px' }}
+                    style={{ marginTop: '10px',padding: '8px 16px' }}
                   >
                     Total: ₹
                     {selectedItems.reduce(
@@ -662,62 +662,62 @@ const App = () => {
             </Paper>
           </Grid>
           <Grid item xs={12} sm={3}>
-            <Paper elevation={3} style={{
-              height: '60vh',
-              overflowY: 'scroll',
-              display: 'flex',
-              flexDirection: 'column', padding: '0px 16px',
-            }}>
-              <Typography variant="h6" gutterBottom>
-                Summary
-              </Typography>
-              <Typography variant="subtitle1" style={{ margin: '10px 0' }}>
-                Users: {selectedUsers.join(', ')}
-              </Typography>
-              <List>
-                {selectedItems.map((item) => (
-                  <ListItem key={item.itemName}>
-                    <ListItemText
-                      primary={`${item.itemName}`}
-                      secondary={`Cost: ₹${item.cost * item.quantity}`}
-                    />
-                    <IconButton
-                      onClick={() => handleQuantityChange(item, -1)}
-                    >
-                      <Remove />
-                      <ListItemText
-                        primary={`${item.quantity}`}
-                      />
-                    </IconButton>
-                    <IconButton
-                      onClick={() => handleQuantityChange(item, 1)}
-                    >
-                      <Add />
-                    </IconButton>
-                  </ListItem>
-                ))}
-              </List>
-              {selectedItems.length > 0 && (
-                <Typography
-                  variant="subtitle1"
-                  style={{ marginTop: '10px' }}
-                >
-                  Total: ₹
-                  {selectedItems.reduce(
-                    (acc, item) => acc + item.cost * item.quantity,
-                    0
-                  )}
+          <Paper elevation={3} style={{
+                height: '60vh',
+                overflowY: 'scroll',
+                display: 'flex',
+                flexDirection: 'column', 
+              }}>
+                <Typography variant="h6" gutterBottom sx={{padding: '8px 16px'}}>
+                  Summary
                 </Typography>
-              )}
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleConfirm}
-                style={{ marginTop: 'auto',width:'100%' }}
-              >
-                Confirm
-              </Button>
-            </Paper>
+                <Typography variant="subtitle1" style={{ margin: '10px 0',padding: '8px 16px' }}>
+                  Users: {selectedUsers.join(', ')}
+                </Typography>
+                <List>
+                  {selectedItems.map((item) => (
+                    <ListItem key={item.itemName} sx={{padding: '8px 16px'}}>
+                      <ListItemText
+                        primary={`${item.itemName}`}
+                        secondary={`Cost: ₹${item.cost * item.quantity}`}
+                      />
+                      <IconButton
+                        onClick={() => handleQuantityChange(item, -1)}
+                      >
+                        <Remove />
+                        <ListItemText
+                          primary={`${item.quantity}`}
+                        />
+                      </IconButton>
+                      <IconButton
+                        onClick={() => handleQuantityChange(item, 1)}
+                      >
+                        <Add />
+                      </IconButton>
+                    </ListItem>
+                  ))}
+                </List>
+                {selectedItems.length > 0 && (
+                  <Typography
+                    variant="subtitle1"
+                    style={{ marginTop: '10px',padding: '8px 16px' }}
+                  >
+                    Total: ₹
+                    {selectedItems.reduce(
+                      (acc, item) => acc + item.cost * item.quantity,
+                      0
+                    )}
+                  </Typography>
+                )}
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleConfirm}
+                  style={{ marginTop: 'auto',width:'100%' }}
+                >
+                  Confirm
+                </Button>
+              </Paper>
           </Grid>
         </Grid>
       )}
