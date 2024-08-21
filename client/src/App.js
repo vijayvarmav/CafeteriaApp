@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 import {
   Container,
   Grid,
@@ -20,9 +20,9 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  TextField
-} from "@mui/material";
-import { Add, Remove, Edit, Delete } from "@mui/icons-material";
+  TextField,
+} from '@mui/material';
+import { Add, Remove, Edit, Delete } from '@mui/icons-material';
 
 const App = () => {
   const [users, setUsers] = useState([]);
@@ -33,45 +33,55 @@ const App = () => {
   const [summary, setSummary] = useState([]);
   const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [itemDialogOpen, setItemDialogOpen] = useState(false);
-  const [newUserName, setNewUserName] = useState("");
-  const [newItem, setNewItem] = useState({ itemName: "", cost: "", mealType: "Lunch" });
+  const [newUserName, setNewUserName] = useState('');
+  const [newItem, setNewItem] = useState({
+    itemName: '',
+    cost: '',
+    mealType: 'Lunch',
+  });
 
   useEffect(() => {
     const initializeLocalStorage = () => {
       const initialData = {
         breakfastMenu: [
-          { itemName: "Idly", cost: 30 },
-          { itemName: "Dosa", cost: 40 },
-          { itemName: "Vada", cost: 50 },
-          { itemName: "Bonda", cost: 60 },
-          { itemName: "Upma", cost: 30 },
-          { itemName: "Poha", cost: 45 },
-          { itemName: "Chai", cost: 12 },
+          { itemName: 'Idly', cost: 30 },
+          { itemName: 'Dosa', cost: 40 },
+          { itemName: 'Vada', cost: 50 },
+          { itemName: 'Bonda', cost: 60 },
+          { itemName: 'Upma', cost: 30 },
+          { itemName: 'Poha', cost: 45 },
+          { itemName: 'Chai', cost: 12 },
         ],
         lunchMenu: [
-          { itemName: "Veg Fried Rice", cost: 50 },
-          { itemName: "Egg Fried Rice", cost: 55 },
-          { itemName: "Chicken Fried Rice", cost: 60 },
-          { itemName: "Veg Thali", cost: 120 },
-          { itemName: "Chicken Thali", cost: 140 },
-          { itemName: "Roti", cost: 10 },
-          { itemName: "Butter Chicken", cost: 150 },
+          { itemName: 'Veg Fried Rice', cost: 50 },
+          { itemName: 'Egg Fried Rice', cost: 55 },
+          { itemName: 'Chicken Fried Rice', cost: 60 },
+          { itemName: 'Veg Thali', cost: 120 },
+          { itemName: 'Chicken Thali', cost: 140 },
+          { itemName: 'Roti', cost: 10 },
+          { itemName: 'Butter Chicken', cost: 150 },
         ],
         users: [
-          { name: "Vijay" },
-          { name: "Ankush" },
-          { name: "Vivek" },
-          { name: "Sachin" },
-          { name: "Lasya" },
-          { name: "Raghavendra" },
+          { name: 'Vijay' },
+          { name: 'Ankush' },
+          { name: 'Vivek' },
+          { name: 'Sachin' },
+          { name: 'Lasya' },
+          { name: 'Raghavendra' },
         ],
       };
 
       if (!localStorage.getItem('breakfastMenu')) {
-        localStorage.setItem('breakfastMenu', JSON.stringify(initialData.breakfastMenu));
+        localStorage.setItem(
+          'breakfastMenu',
+          JSON.stringify(initialData.breakfastMenu)
+        );
       }
       if (!localStorage.getItem('lunchMenu')) {
-        localStorage.setItem('lunchMenu', JSON.stringify(initialData.lunchMenu));
+        localStorage.setItem(
+          'lunchMenu',
+          JSON.stringify(initialData.lunchMenu)
+        );
       }
       if (!localStorage.getItem('users')) {
         localStorage.setItem('users', JSON.stringify(initialData.users));
@@ -185,18 +195,25 @@ const App = () => {
       const updatedUsers = [...users, { name: newUserName }];
       setUsers(updatedUsers);
       localStorage.setItem('users', JSON.stringify(updatedUsers));
-      setNewUserName("");
+      setNewUserName('');
       setUserDialogOpen(false);
     }
   };
 
   const addItem = () => {
     if (newItem.itemName.trim() && newItem.cost && newItem.mealType) {
-      const updatedItems = newItem.mealType === "Lunch"
-        ? [...lunchItems, { itemName: newItem.itemName, cost: parseFloat(newItem.cost) }]
-        : [...breakfastItems, { itemName: newItem.itemName, cost: parseFloat(newItem.cost) }];
+      const updatedItems =
+        newItem.mealType === 'Lunch'
+          ? [
+              ...lunchItems,
+              { itemName: newItem.itemName, cost: parseFloat(newItem.cost) },
+            ]
+          : [
+              ...breakfastItems,
+              { itemName: newItem.itemName, cost: parseFloat(newItem.cost) },
+            ];
 
-      if (newItem.mealType === "Lunch") {
+      if (newItem.mealType === 'Lunch') {
         setLunchItems(updatedItems);
         localStorage.setItem('lunchMenu', JSON.stringify(updatedItems));
       } else {
@@ -204,7 +221,7 @@ const App = () => {
         localStorage.setItem('breakfastMenu', JSON.stringify(updatedItems));
       }
 
-      setNewItem({ itemName: "", cost: "", mealType: "Lunch" });
+      setNewItem({ itemName: '', cost: '', mealType: 'Lunch' });
       setItemDialogOpen(false);
     }
   };
@@ -221,7 +238,7 @@ const App = () => {
   );
 
   const getUserStatusColor = (user) => {
-    return summary.some((entry) => entry.user === user) ? "green" : "gray";
+    return summary.some((entry) => entry.user === user) ? 'green' : 'gray';
   };
 
   return (
@@ -233,9 +250,16 @@ const App = () => {
         <Grid item xs={3} sm={3}>
           <Paper
             elevation={3}
-            style={{ height: "70vh", overflowY: "scroll", display: "flex", flexDirection: "column" }}
+            style={{
+              height: '70vh',
+              overflowY: 'scroll',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
           >
-            <Typography variant="h6" style={{ margin: 0 }}>Users</Typography>
+            <Typography variant="h6" style={{ margin: 0 }}>
+              Users
+            </Typography>
             <List style={{ flexGrow: 1, margin: 0, padding: 0 }}>
               {users.map((user) => (
                 <ListItem
@@ -246,14 +270,14 @@ const App = () => {
                 >
                   <span
                     style={{
-                      display: "inline-block",
-                      width: "7px",
-                      height: "7px",
-                      borderRadius: "50%",
+                      display: 'inline-block',
+                      width: '7px',
+                      height: '7px',
+                      borderRadius: '50%',
                       backgroundColor: getUserStatusColor(user.name),
-                      margin: "0px",
-                      marginLeft: "5px",
-                      padding: "0px",
+                      margin: '0px',
+                      marginLeft: '5px',
+                      padding: '0px',
                     }}
                   ></span>
                   <Checkbox
@@ -280,9 +304,16 @@ const App = () => {
         <Grid item xs={6} sm={6}>
           <Paper
             elevation={3}
-            style={{ height: "70vh", overflowY: "scroll", display: "flex", flexDirection: "column" }}
+            style={{
+              height: '70vh',
+              overflowY: 'scroll',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
           >
-            <Typography variant="h6" style={{ margin: 0 }}>Lunch Menu</Typography>
+            <Typography variant="h6" style={{ margin: 0 }}>
+              Lunch Menu
+            </Typography>
             <List style={{ flexGrow: 1, margin: 0, padding: 0 }}>
               {lunchItems.map((item) => (
                 <ListItem
@@ -297,11 +328,16 @@ const App = () => {
                     )}
                     onChange={() => handleItemSelect(item)}
                   />
-                  <ListItemText primary={`${item.itemName} - $${item.cost}`} style={{ margin: 0 }} />
+                  <ListItemText
+                    primary={`${item.itemName} - $${item.cost}`}
+                    style={{ margin: 0 }}
+                  />
                 </ListItem>
               ))}
             </List>
-            <Typography variant="h6" style={{ margin: "10px 0 0 0" }}>Breakfast Menu</Typography>
+            <Typography variant="h6" style={{ margin: '10px 0 0 0' }}>
+              Breakfast Menu
+            </Typography>
             <List style={{ flexGrow: 1, margin: 0, padding: 0 }}>
               {breakfastItems.map((item) => (
                 <ListItem
@@ -316,7 +352,10 @@ const App = () => {
                     )}
                     onChange={() => handleItemSelect(item)}
                   />
-                  <ListItemText primary={`${item.itemName} - $${item.cost}`} style={{ margin: 0 }} />
+                  <ListItemText
+                    primary={`${item.itemName} - $${item.cost}`}
+                    style={{ margin: 0 }}
+                  />
                 </ListItem>
               ))}
               <ListItem>
@@ -334,13 +373,24 @@ const App = () => {
         </Grid>
 
         <Grid item xs={3} sm={3}>
-          <Paper elevation={3} style={{ height: "70vh", overflowY: "scroll", display: "flex", flexDirection: "column", padding: 0 }}>
-            <Typography variant="h6" style={{ margin: 0 }}>Summary</Typography>
+          <Paper
+            elevation={3}
+            style={{
+              height: '70vh',
+              overflowY: 'scroll',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: 0,
+            }}
+          >
+            <Typography variant="h6" style={{ margin: 0 }}>
+              Summary
+            </Typography>
             <div style={{ flexGrow: 1, padding: 10 }}>
               {selectedUsers.length > 0 && (
                 <>
-                  <Typography variant="subtitle1" style={{ margin: "10px 0" }}>
-                    Users: {selectedUsers.join(", ")}
+                  <Typography variant="subtitle1" style={{ margin: '10px 0' }}>
+                    Users: {selectedUsers.join(', ')}
                   </Typography>
                   {selectedItems.length > 0 && (
                     <List style={{ margin: 0, padding: 0 }}>
@@ -366,7 +416,10 @@ const App = () => {
                     </List>
                   )}
                   {selectedItems.length > 0 && (
-                    <Typography variant="subtitle1" style={{ marginTop: "10px" }}>
+                    <Typography
+                      variant="subtitle1"
+                      style={{ marginTop: '10px' }}
+                    >
                       Total: $
                       {selectedItems.reduce(
                         (acc, item) => acc + item.cost * item.quantity,
@@ -379,7 +432,7 @@ const App = () => {
                     color="primary"
                     fullWidth
                     onClick={handleConfirm}
-                    style={{ marginTop: "10px" }}
+                    style={{ marginTop: '10px' }}
                   >
                     Confirm
                   </Button>
@@ -393,15 +446,15 @@ const App = () => {
           <TableContainer
             component={Paper}
             elevation={3}
-            style={{ marginTop: "20px", padding: 0 }}
+            style={{ marginTop: '20px', padding: 0 }}
           >
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell style={{ width: "30%" }}>User</TableCell>
-                  <TableCell style={{ width: "40%" }}>Items</TableCell>
-                  <TableCell style={{ width: "15%" }}>Total Cost</TableCell>
-                  <TableCell style={{ width: "15%" }}>Actions</TableCell>
+                  <TableCell style={{ width: '30%' }}>User</TableCell>
+                  <TableCell style={{ width: '40%' }}>Items</TableCell>
+                  <TableCell style={{ width: '15%' }}>Total Cost</TableCell>
+                  <TableCell style={{ width: '15%' }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -427,13 +480,13 @@ const App = () => {
                   </TableRow>
                 ))}
                 <TableRow>
-                  <TableCell colSpan={1} style={{ fontWeight: "bold" }}>
+                  <TableCell colSpan={1} style={{ fontWeight: 'bold' }}>
                     Total Users: {totalUsers}
                   </TableCell>
-                  <TableCell colSpan={1} style={{ fontWeight: "bold" }}>
+                  <TableCell colSpan={1} style={{ fontWeight: 'bold' }}>
                     Total Items Ordered: {totalItemsOrdered}
                   </TableCell>
-                  <TableCell colSpan={2} style={{ fontWeight: "bold" }}>
+                  <TableCell colSpan={2} style={{ fontWeight: 'bold' }}>
                     Total Order Value: ${totalOrderValue}
                   </TableCell>
                 </TableRow>
@@ -466,50 +519,53 @@ const App = () => {
       </Dialog>
 
       {/* Item Dialog */}
-{/* Item Dialog */}
-<Dialog open={itemDialogOpen} onClose={() => setItemDialogOpen(false)}>
-  <DialogTitle>Add New Item</DialogTitle>
-  <DialogContent>
-    <TextField
-      autoFocus
-      margin="dense"
-      label="Item Name"
-      type="text"
-      fullWidth
-      value={newItem.itemName}
-      onChange={(e) => setNewItem({ ...newItem, itemName: e.target.value })}
-    />
-    <TextField
-      margin="dense"
-      label="Cost"
-      type="number"
-      fullWidth
-      value={newItem.cost}
-      onChange={(e) => setNewItem({ ...newItem, cost: e.target.value })}
-    />
-    <TextField
-      margin="dense"
-      label="Meal Type"
-      select
-      fullWidth
-      value={newItem.mealType}
-      onChange={(e) => setNewItem({ ...newItem, mealType: e.target.value })}
-      SelectProps={{
-        native: true,
-      }}
-    >
-      <option value="Lunch">Lunch</option>
-      <option value="Breakfast">Breakfast</option>
-    </TextField>
-  </DialogContent>
-  <DialogActions>
-    <Button onClick={() => setItemDialogOpen(false)}>Cancel</Button>
-    <Button onClick={addItem} color="primary">
-      Add
-    </Button>
-  </DialogActions>
-</Dialog>
-
+      {/* Item Dialog */}
+      <Dialog open={itemDialogOpen} onClose={() => setItemDialogOpen(false)}>
+        <DialogTitle>Add New Item</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Item Name"
+            type="text"
+            fullWidth
+            value={newItem.itemName}
+            onChange={(e) =>
+              setNewItem({ ...newItem, itemName: e.target.value })
+            }
+          />
+          <TextField
+            margin="dense"
+            label="Cost"
+            type="number"
+            fullWidth
+            value={newItem.cost}
+            onChange={(e) => setNewItem({ ...newItem, cost: e.target.value })}
+          />
+          <TextField
+            margin="dense"
+            label="Meal Type"
+            select
+            fullWidth
+            value={newItem.mealType}
+            onChange={(e) =>
+              setNewItem({ ...newItem, mealType: e.target.value })
+            }
+            SelectProps={{
+              native: true,
+            }}
+          >
+            <option value="Lunch">Lunch</option>
+            <option value="Breakfast">Breakfast</option>
+          </TextField>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setItemDialogOpen(false)}>Cancel</Button>
+          <Button onClick={addItem} color="primary">
+            Add
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };
