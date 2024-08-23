@@ -366,7 +366,7 @@ const App = () => {
 
   const sliderSettings = {
     dots: true,
-    infinite: false,
+    infinite: true,
     speed: 500,
     slidesToShow: 1,
     slidesToScroll: 1,
@@ -563,7 +563,7 @@ const App = () => {
               </Paper>
             </Grid>
           </div>
-          <div>
+          {/* <div>
             <Grid item xs={12} sm={3}>
               <Paper elevation={3} style={{
                 height: '60vh',
@@ -622,7 +622,7 @@ const App = () => {
                 </Button>
               </Paper>
             </Grid>
-          </div>
+          </div> */}
         </Slider>
       ) : (
         <Grid container spacing={2}>
