@@ -385,7 +385,7 @@ const App = () => {
   return (
     <Container>
       <Typography variant="h4" gutterBottom align="center">
-        Cafeteria App
+        iCafeteria
       </Typography>
       {isSmallScreen ? (
         <Slider {...sliderSettings} ref={sliderRef}>
