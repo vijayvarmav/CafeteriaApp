@@ -207,7 +207,7 @@ const App = () => {
     setUsers(JSON.parse(localStorage.getItem('users')));
     setBreakfastItems(JSON.parse(localStorage.getItem('breakfastMenu')));
     setLunchItems(JSON.parse(localStorage.getItem('lunchMenu')));
-    setSummary(JSON.parse(localStorage.getItem('summary')) || []);
+    setSummary([]);
   }, []);
 
   const handleUserSelect = (user) => {
