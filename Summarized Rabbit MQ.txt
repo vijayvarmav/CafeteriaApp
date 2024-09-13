@@ -1,0 +1,224 @@
+
+
+Common Failure Scenarios and Mitigations in RabbitMQ:
+
+A Step-by-Step Breakdown from Producer to Dead Letter Queue.
+ 
+1. Producer/Publisher Stage
+
+Scenarios:
+
+	connection Failure:
+
+		network bandwidth -> use connection pooling
+
+		network issues -> retry connection
+
+	Channel Failure / creation fails / closed unexpectedly/ Handle channel errors
+
+		monitor channel state
+
+		ensure reconnections
+ 
+	assert exchange
+
+	assert queue
+
+	bind queue to exchange (proper configured)
+
+	send persistent msg (matching routing key) with publisher confirms / mandatory unroutable flag enabled
+
+		through a channel
+
+			send to an exchange1 (routing key, config: message persistence)
+
+			(send to an alternate exchange for unroutable messages)
+
+				route to queue1 (routing key binded/declared) ( without dropped/rejected/lost )
+
+				route to queue2 (routing key binded/declared) ( without dropped/rejected/lost )
+
+					broker/RabbitMQ acks
+
+	increase publishers
+
+		increase msgs
+
+			increase consumers
+ 
+	publishing/consuming messages
+ 
+ 
+Queue Saturation (Backpressure):
+
+The queue becomes too full, leading to memory or disk exhaustion, and RabbitMQ starts throttling producers or discards messages.
+
+Mitigation: Implement flow control mechanisms, monitor queue length, and scale consumers as necessary.
+ 
+Message Overload in Queues:
+
+The queue is overwhelmed by a large influx of messages, leading to performance degradation.
+ 
+ 
+	Lazy Queue Misconfiguration:
+
+	Messages are loaded into memory instead of disk due to improper configuration of lazy queues, leading to memory exhaustion.
+
+	Mitigation: Use lazy queues for large or long-lived queues to reduce memory usage by storing messages on disk.
+ 
+message TTL (Time-to-Live) Expired			sec / min    > max consumer processing time
+
+queues (expiry, TTL msg expiry)		min / hr	and dead-letter exchanges to discard old messages or route them to other systems.
+ 
+ 
+4. Consumer Stage
+
+Step: The consumer
+
+		consumes messages
+
+			from the queue
+
+				processes them
+ 
+Consumer Processing Failure:
+
+	The consumer fails to process the message
+
+			Implement proper error handling and logging to capture and report failures.
+ 
+Unacknowledged Messages:
+
+	consumer crashes
+
+		enable message acknowledgments
+
+		configure RabbitMQ
+
+			after a timeout
+
+				redeliver unacknowledged messages
+
+Consumer Timeout:
+
+	RabbitMQ's consumer timeout settings
+
+		Tune the consumer timeout settings			or		optimize the consumer's processing logic.
+ 
+Consumer Connection Loss:
+
+The connection between the consumer and RabbitMQ is lost due to network failures, leading to unprocessed messages.
+
+Mitigation: Implement automatic reconnection logic for consumers.
+ 
+ 
+Message Duplication:
+
+The same message is delivered to multiple consumers due to redelivery or consumer reconnection before the previous message was acknowledged.
+
+Mitigation: Ensure idempotency in message processing logic to handle duplicates gracefully.
+ 
+5. Retry Queue Stage (Handling Failures)
+
+Step: If a message fails to be processed by the consumer, it is moved to a Retry Queue for reprocessing after a delay.
+ 
+ 
+Scenarios:
+
+Misconfigured Retry Queue:
+ 
+The retry queue is not properly configured with a TTL or dead-letter exchange, causing messages to be stuck or not routed back for retry.
+
+Mitigation: Ensure proper configuration of the retry queue with a TTL and dead-letter exchange.
+ 
+ 
+Retry TTL Too Short/Long:
+
+If the TTL (Time-to-Live) for the retry queue is too short, messages may be retried too frequently, overwhelming the system.
+
+If too long, messages take too long to be retried.
+
+Mitigation: Set an appropriate TTL based on the failure recovery time and retry capacity of the system.
+ 
+ 
+Excessive Retries (Poison Messages):
+
+A message continually fails in the retry process and gets stuck in an infinite retry loop.
+
+Mitigation: Implement a retry limit and route messages to a dead-letter queue (DLQ) after the retry limit is reached.
+ 
+ 
+6. Dead Letter Queue (DLQ) Stage
+
+Step: Messages that fail multiple retries or meet failure conditions (e.g., TTL expiration)
+
+	are moved to the Dead Letter Queue (DLQ) for inspection or manual intervention.
+ 
+Scenarios:
+
+Dead Letter Queue Misconfiguration:
+
+The dead-letter queue is not configured correctly, causing failed messages to be lost or not routed properly.
+
+Mitigation: Ensure that the DLX (Dead-Letter Exchange) and routing keys are configured correctly.
+ 
+DLQ Overflow:
+
+If the DLQ is overwhelmed by too many failed messages, it can lead to memory or disk exhaustion.
+
+Mitigation: Monitor the DLQ and set policies to purge or process messages in the DLQ regularly.
+ 
+ 
+Unmonitored Dead Letter Queue:
+
+Messages pile up in the DLQ without being monitored or addressed, leading to operational bottlenecks.
+
+Mitigation: Regularly monitor and review messages in the DLQ to identify and resolve recurring issues.
+ 
+ 
+Misrouted Dead Letters:
+
+Messages might be routed to the wrong DLQ if the routing key is incorrect.
+
+Mitigation: Ensure that the dead-letter routing key is correctly configured for different queues.
+ 
+ 
+7. Monitoring and Alerting Stage
+
+Step: RabbitMQ metrics and health are monitored, and alerts are set up to detect failures.
+ 
+ 
+Scenarios:
+
+Lack of Monitoring:
+
+	Without monitoring RabbitMQ metrics, failures (e.g., queue saturation, memory exhaustion) can go unnoticed until RabbitMQ crashes.
+
+	Mitigation: Use RabbitMQ’s built-in monitoring tools or external monitoring systems like Prometheus, Grafana, or ELK Stack.
+ 
+Slow Alert Response:
+
+	Alerts are configured, but no one responds in time to prevent issues (e.g., disk exhaustion).
+
+	Mitigation: Set up alerts with proper escalation policies to ensure prompt resolution.
+ 
+Final Message Flow Example:
+
+	Producer sends a message to Exchange.
+
+	Exchange routes the message to the Queue.
+
+	Consumer processes the message:
+
+	If successful, the message is acknowledged.
+
+	If failed, the message is moved to the Retry Queue (with TTL).
+
+	Retry Queue attempts to re-deliver the message to the Queue.
+
+	If the message fails after multiple retries, it is sent to the Dead Letter Queue (DLQ).
+
+	DLQ stores failed messages for inspection or manual intervention.
+ 
+ 
+ 
