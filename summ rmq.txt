@@ -1,0 +1,102 @@
+Common Failure Scenarios and Mitigations in RabbitMQ:
+A Step-by-Step Breakdown from Producer to Dead Letter Queue. 
+
+1. Producer/Publisher Stage
+Scenarios:
+	connection Failure:
+		network bandwidth -> use connection pooling
+		network issues -> retry connection
+	Channel Failure / creation fails / closed unexpectedly/ Handle channel errors
+		monitor channel state
+		ensure reconnections
+	assert exchange
+	assert queue
+	bind queue to exchange (proper configured)
+	send persistent msg (matching routing key) with publisher confirms / mandatory unroutable flag enabled
+		through a channel
+			send to an exchange1 (routing key, config: message persistence)
+			(send to an alternate exchange for unroutable messages)
+				route to queue1 (routing key binded/declared) ( without dropped/rejected/lost )
+				route to queue2 (routing key binded/declared) ( without dropped/rejected/lost )
+					broker/RabbitMQ acks
+	increase publishers
+		increase msgs
+			increase consumers
+	publishing/consuming messages
+Queue Saturation (Backpressure):
+The queue becomes too full, leading to memory or disk exhaustion, and RabbitMQ starts throttling producers or discards messages.
+Mitigation: Implement flow control mechanisms, monitor queue length, and scale consumers as necessary.
+Message Overload in Queues:
+The queue is overwhelmed by a large influx of messages, leading to performance degradation.
+	Lazy Queue Misconfiguration:
+	Messages are loaded into memory instead of disk due to improper configuration of lazy queues, leading to memory exhaustion.
+	Mitigation: Use lazy queues for large or long-lived queues to reduce memory usage by storing messages on disk.
+message TTL (Time-to-Live) Expired			sec / min    > max consumer processing time
+queues (expiry, TTL msg expiry)		min / hr	and dead-letter exchanges to discard old messages or route them to other systems. 
+
+Consumer Stage
+	The consumer
+		consumes messages
+			from the queue
+				processes them
+	Consumer Processing Failure:	
+		The consumer fails to process the message
+				Implement proper error handling and logging to capture and report failures.
+	Unacknowledged Messages:
+		consumer crashes
+			enable message acknowledgments
+			configure RabbitMQ
+				after a timeout
+					redeliver unacknowledged messages
+	Consumer Timeout:
+		RabbitMQ's consumer timeout settings
+			Tune the consumer timeout settings			or		optimize the consumer's processing logic.		
+	Consumer Connection Loss:
+		The connection between the consumer and RabbitMQ is lost due network issues -> Implement automatic reconnection.
+	Message Duplication:
+		Redelivery -> Ensure idempotent processing logic to handle duplicates.
+
+Retry Queue Stage(message fails to be processed by the consumer, it is moved to a Retry Queue for reprocessing after a delay)
+	Misconfigured Retry Queue:
+		Incorrect TTL/DLX -> Properly configure TTL and DLX.
+	Retry TTL Issues:
+		TTL too short/long -> Adjust TTL based on system capacity.
+	Excessive Retries:
+		Infinite loop -> Set retry limits and use DLQ.
+
+Dead Letter Queue (DLQ) Stage
+	DLQ Misconfiguration:
+		Incorrect DLX/routing -> Ensure correct DLX and routing keys.
+	DLQ Overflow:
+		Too many messages -> Monitor and purge regularly.
+	Unmonitored DLQ:
+		Accumulation of messages -> Regularly review and address issues.
+	Misrouted Dead Letters:
+		Incorrect routing keys -> Verify routing key configuration.
+
+Monitoring and Alerting Stage
+	Lack of Monitoring:
+		Unnoticed failures -> Use monitoring tools.
+	Slow Alert Response:
+		Delayed actions -> Implement escalation policies.
+
+Final Message Flow Example:
+
+	Producer sends a message to Exchange.
+
+	Exchange routes the message to the Queue.
+
+	Consumer processes the message:
+
+	If successful, the message is acknowledged.
+
+	If failed, the message is moved to the Retry Queue (with TTL).
+
+	Retry Queue attempts to re-deliver the message to the Queue.
+
+	If the message fails after multiple retries, it is sent to the Dead Letter Queue (DLQ).
+
+	DLQ stores failed messages for inspection or manual intervention.
+ 
+ 
+ 
